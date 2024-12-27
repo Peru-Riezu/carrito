@@ -1,0 +1,14 @@
+ignorar columnas fechas
+ignorar redactor
+ignorar responsible
+ignorar numero de caja
+ignorar directorio
+error Letras
+error codigo trabajo = codigo oferta
+error trabajo sin oferta
+error trabajos sin estado
+error codigos que no sean seis digitos numericos
+ignorar proyectos que empiezan por 70 
+ignorar estados  
+  
+proyectos/ofertas archivadas (en b:) que sean solo lectura

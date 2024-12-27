@@ -1,0 +1,13 @@
+Total de ofertas no migradas: 34
+Totatal de ofertas migradas: 3005
+porcentaje de ofertas migradas: 98.88121092464627%
+Total de trabajos no migrados: 1145
+Totatal de trabajos migrados: 1854
+porcentaje de trabajos migrados: 61.82060686895632%
+Total de documentacion emitida no migrada: 2730
+Total de documentacion emitida migrada: 25781
+porcentaje de documentacion emitida migrada: 90.4247483427449%
+Total de documentacion recivida no migrada: 2210
+Total de documentacion recibida migrada: 28010
+porcentaje de documentacion recibida migrada: 92.68696227663798%
+porcentaje de documentacion recibida/emitida migrada: 91.58876913384755%

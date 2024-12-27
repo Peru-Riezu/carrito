@@ -1,0 +1,7 @@
+1	email
+2	cd
+3	mensajero
+4	en mano
+5	fax
+6	ftp
+7	otro

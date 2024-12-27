@@ -1,0 +1,4 @@
+contraseña superusuario: vD6jxIe8bgz2dDyAo4VH9G4t6u7qha
+puerto: 5432
+
+Locale: Spanish, spain

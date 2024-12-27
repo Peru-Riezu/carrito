@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@docwagen/unoserver-node": "^2.2.0",
+    "excel4node": "^1.8.2",
+    "exceljs": "^4.4.0",
+    "pg": "^8.13.1",
+    "readline-sync": "^1.4.10",
+    "xlsx": "^0.18.5"
+  }
+}
