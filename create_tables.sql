@@ -168,7 +168,7 @@ CREATE TYPE e_action AS ENUM
 	'block_user',
 	'unblock_user',
 	'set_new_user_password',
-	'set_user_password_to_expiered',
+	'set_user_password_to_expired',
 	'update_work_observations',
 	'update_work_notes',
 	'update_offer_observations',
@@ -545,11 +545,11 @@ $$
 		END IF;
 
 		INSERT INTO sent_documentation_offer_t
-			(associated_offer_code, num, recipient, object_name, method_of_delivery, date_of_dispatch)
-		VALUES (associated_offer_code, num, recipient, object_name, method_of_delivery, date_of_dispatch);
+			(associated_offer_code, num, recipient, object_name, observations, method_of_delivery, date_of_dispatch)
+		VALUES (associated_offer_code, num, recipient, object_name, observations, method_of_delivery, date_of_dispatch);
 
 		INSERT INTO action_t
-			(action, username, offer_code, num, recipient_or_sender, object_name, method_of_delivery, date_of_dispatch)
+			(action, username, offer_code, num, recipient_or_sender, object_name, observations, method_of_delivery, date_of_dispatch)
 		VALUES
 			(
 				'create_sent_documentation_offer',
@@ -558,6 +558,7 @@ $$
 				num,
 				recipient,
 				object_name,
+				observations,
 				method_of_delivery,
 				date_of_dispatch
 			);
@@ -589,11 +590,11 @@ $$
 		END IF;
 
 		INSERT INTO received_documentation_offer_t
-			(associated_offer_code, num, sender, object_name, method_of_delivery, date_of_dispatch)
-		VALUES (associated_offer_code, num, sender, object_name, method_of_delivery, date_of_dispatch);
+			(associated_offer_code, num, sender, object_name, observations, method_of_delivery, date_of_dispatch)
+		VALUES (associated_offer_code, num, sender, object_name, observations, method_of_delivery, date_of_dispatch);
 
 		INSERT INTO action_t
-			(action, username, offer_code, num, recipient_or_sender, object_name, method_of_delivery, date_of_dispatch)
+			(action, username, offer_code, num, recipient_or_sender, object_name, observations, method_of_delivery, date_of_dispatch)
 		VALUES
 			(
 				'create_received_documentation_offer',
@@ -602,6 +603,7 @@ $$
 				num,
 				sender,
 				object_name,
+				observations,
 				method_of_delivery,
 				date_of_dispatch
 			);
@@ -633,11 +635,11 @@ $$
 		END IF;
 
 		INSERT INTO sent_documentation_work_t
-			(associated_work_code, num, recipient, object_name, method_of_delivery, date_of_dispatch)
-		VALUES (associated_work_code, num, recipient, object_name, method_of_delivery, date_of_dispatch);
+			(associated_work_code, num, recipient, object_name, observations, method_of_delivery, date_of_dispatch)
+		VALUES (associated_work_code, num, recipient, object_name, observations, method_of_delivery, date_of_dispatch);
 
 		INSERT INTO action_t
-			(action, username, work_code, num, recipient_or_sender, object_name, method_of_delivery, date_of_dispatch)
+			(action, username, work_code, num, recipient_or_sender, object_name, observations, method_of_delivery, date_of_dispatch)
 		VALUES
 			(
 				'create_sent_documentation_work',
@@ -646,6 +648,7 @@ $$
 				num,
 				recipient,
 				object_name,
+				observations,
 				method_of_delivery,
 				date_of_dispatch
 			);
@@ -676,12 +679,12 @@ $$
 			RAISE EXCEPTION 'Work is archived.';
 		END IF;
 
-		INSERT INTO recieved_documentation_work_t
-			(associated_work_code, num, sender, object_name, method_of_delivery, date_of_dispatch)
-		VALUES (associated_work_code, num, sender, object_name, method_of_delivery, date_of_dispatch);
+		INSERT INTO received_documentation_work_t
+			(associated_work_code, num, sender, object_name, observations, method_of_delivery, date_of_dispatch)
+		VALUES (associated_work_code, num, sender, object_name, observations, method_of_delivery, date_of_dispatch);
 
 		INSERT INTO action_t
-			(action, username, work_code, num, recipient_or_sender, object_name, method_of_delivery, date_of_dispatch)
+			(action, username, work_code, num, recipient_or_sender, object_name, observations, method_of_delivery, date_of_dispatch)
 		VALUES
 			(
 				'create_received_documentation_work',
@@ -690,6 +693,8 @@ $$
 				num,
 				sender,
 				object_name,
+				observations,
+				observations,
 				method_of_delivery,
 				date_of_dispatch
 			);
@@ -756,7 +761,7 @@ $$
 			WHERE associated_offer_code = targets_associated_offer_code AND num = targets_num;
 		IF NOT FOUND
 		THEN
-			RAISE EXCEPTION 'No sent documentation exists with that identifier';
+			RAISE EXCEPTION 'No received documentation exists with that identifier';
 		END IF;
 
 		INSERT INTO action_t
@@ -830,7 +835,7 @@ $$
 			WHERE associated_work_code = targets_associated_work_code AND num = targets_num;
 		IF NOT FOUND
 		THEN
-			RAISE EXCEPTION 'No sent documentation exists with that identifier';
+			RAISE EXCEPTION 'No received documentation exists with that identifier';
 		END IF;
 
 		INSERT INTO action_t
