@@ -694,7 +694,6 @@ $$
 				sender,
 				object_name,
 				observations,
-				observations,
 				method_of_delivery,
 				date_of_dispatch
 			);
