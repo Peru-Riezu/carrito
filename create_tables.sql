@@ -138,26 +138,26 @@ CREATE TABLE sent_offer_documentation_file_t
 CREATE TYPE e_action AS ENUM
 (
 	'create_offer', -- done
-	'create_sent_documentation_offer',
+	'create_sent_documentation_offer', -- in progress
 	'create_sent_offer_documentation_file',
-	'create_received_documentation_offer',
+	'create_received_documentation_offer', -- in progress
 	'create_received_documentation_offer_file',
 	'delete_offer', --done
-	'delete_sent_documentation_offer',
+	'delete_sent_documentation_offer', -- in progress
 	'delete_sent_offer_documentation_file',
-	'delete_received_documentation_offer',
+	'delete_received_documentation_offer', --  in progress
 	'delete_received_documentation_offer_file',
 	'archive_offer', --done
 	'reopen_offer', --done
 	'create_work', --done
-	'create_sent_documentation_work',
+	'create_sent_documentation_work', -- in progress
 	'create_sent_work_documentation_file',
-	'create_received_documentation_work',
+	'create_received_documentation_work', -- in progress
 	'create_received_documentation_work_file',
 	'delete_work', --done
-	'delete_sent_documentation_work',
+	'delete_sent_documentation_work', -- in progress
 	'delete_sent_work_documentation_file',
-	'delete_received_documentation_work',
+	'delete_received_documentation_work', -- in progress
 	'delete_received_documentation_work_file',
 	'archive_work', --done
 	'reopen_work', --done
@@ -170,6 +170,18 @@ CREATE TYPE e_action AS ENUM
 	'set_new_user_password',
 	'set_user_password_to_expiered'
 );
+
+-- getters that need to be programmed
+-- get_offers
+-- get_works
+-- get_users
+-- get_user_data(id)
+-- get_sent_documentation_offer(offer_code)
+-- get_sent_documentation_files_offer(offer_code, num)
+-- get_sent_documentation_file_offer(offer_code, num, filename)
+-- get_sent_documentation_work(work_code)
+-- get_sent_documentation_files_work(work_code, num)
+-- get_sent_documentation_file_work(work_code, num, filename)
 
 --this is to log the actions, all functions will add an entry here before modifyng the other tables
 CREATE TABLE action_t
@@ -485,6 +497,129 @@ $$
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
+CREATE OR REPLACE FUNCTION create_sent_documentation_offer(
+																username VARCHAR(10),
+																user_password BYTEA,
+															    associated_offer_code CHAR(6),
+															    num INT,
+															    recipient TEXT,
+															    object_name TEXT,
+															    observations TEXT,
+															    method_of_delivery e_method_of_delivery,
+															    date_of_dispatch DATE
+															)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		IF EXISTS (SELECT TRUE FROM offer_t WHERE code = associated_offer_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Offer is archived.';
+		END IF;
+
+		INSERT INTO action_t (action, username, work_code, num, recipient_or_sender, object_name, method_of_delivery, date_of_dispatch)
+		VALUES ('create_sent_documentation_offer', username, associated_offer_code, num, recipient, object_name, method_of_delivery, date_of_dispatch);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION create_received_documentation_offer(
+																username VARCHAR(10),
+																user_password BYTEA,
+															    associated_offer_code CHAR(6),
+															    num INT,
+															    sender TEXT,
+															    object_name TEXT,
+															    observations TEXT,
+															    method_of_delivery e_method_of_delivery,
+															    date_of_dispatch DATE
+																)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		IF EXISTS (SELECT TRUE FROM offer_t WHERE code = associated_offer_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Offer is archived.';
+		END IF;
+
+		INSERT INTO action_t (action, username, work_code, num, recipient_or_sender, object_name, method_of_delivery, date_of_dispatch)
+		VALUES ('create_received_documentation_offer', username, associated_offer_code, num, sender, object_name, method_of_delivery, date_of_dispatch);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION create_sent_documentation_work(
+																username VARCHAR(10),
+																user_password BYTEA,
+															    associated_work_code CHAR(6),
+															    num INT,
+															    recipient TEXT,
+															    object_name TEXT,
+															    observations TEXT,
+															    method_of_delivery e_method_of_delivery,
+															    date_of_dispatch DATE
+															)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION create_received_documentation_work()
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION delete_sent_documentation_offer()
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION delete_received_documentation_offer()
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION delete_sent_documentation_work()
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION delete_received_documentation_work()
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+
 CREATE ROLE gateway_role LOGIN PASSWORD 'exnz2tg54gm7qkkj4e4nj';
 GRANT EXECUTE ON FUNCTION create_offer TO gateway_role;
 GRANT EXECUTE ON FUNCTION delete_offer TO gateway_role;
@@ -494,3 +629,5 @@ GRANT EXECUTE ON FUNCTION create_work TO gateway_role;
 GRANT EXECUTE ON FUNCTION delete_work TO gateway_role;
 GRANT EXECUTE ON FUNCTION archive_work TO gateway_role;
 GRANT EXECUTE ON FUNCTION reopen_work TO gateway_role;
+GRANT EXECUTE ON FUNCTION create_sent_documentation_offer TO gateway_role;
+GRANT EXECUTE ON FUNCTION create_received_documentation_offer TO gateway_role;
