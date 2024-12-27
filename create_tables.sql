@@ -138,26 +138,26 @@ CREATE TABLE sent_offer_documentation_file_t
 CREATE TYPE e_action AS ENUM
 (
 	'create_offer', -- done
-	'create_sent_documentation_offer', -- in progress
+	'create_sent_documentation_offer', -- done
 	'create_sent_offer_documentation_file',
-	'create_received_documentation_offer', -- in progress
+	'create_received_documentation_offer', -- done
 	'create_received_documentation_offer_file',
 	'delete_offer', --done
-	'delete_sent_documentation_offer', -- in progress
+	'delete_sent_documentation_offer', -- done
 	'delete_sent_offer_documentation_file',
-	'delete_received_documentation_offer', --  in progress
+	'delete_received_documentation_offer', -- done
 	'delete_received_documentation_offer_file',
 	'archive_offer', --done
 	'reopen_offer', --done
 	'create_work', --done
-	'create_sent_documentation_work', -- in progress
+	'create_sent_documentation_work', -- done
 	'create_sent_work_documentation_file',
-	'create_received_documentation_work', -- in progress
+	'create_received_documentation_work', -- done
 	'create_received_documentation_work_file',
 	'delete_work', --done
-	'delete_sent_documentation_work', -- in progress
+	'delete_sent_documentation_work', -- done
 	'delete_sent_work_documentation_file',
-	'delete_received_documentation_work', -- in progress
+	'delete_received_documentation_work', -- done
 	'delete_received_documentation_work_file',
 	'archive_work', --done
 	'reopen_work', --done
@@ -168,7 +168,11 @@ CREATE TYPE e_action AS ENUM
 	'block_user',
 	'unblock_user',
 	'set_new_user_password',
-	'set_user_password_to_expiered'
+	'set_user_password_to_expiered',
+	'update_work_observations',
+	'update_work_notes',
+	'update_offer_observations',
+	'update_offer_notes'
 );
 
 -- getters that need to be programmed
@@ -395,16 +399,38 @@ CREATE OR REPLACE FUNCTION create_work(
 RETURNS BOOLEAN AS
 $$
 	BEGIN
-	    PERFORM validate_user(username, user_password);
-	    PERFORM check_if_admin(username);
+		PERFORM validate_user(username, user_password);
+		PERFORM check_if_admin(username);
 
-	    INSERT INTO work_t (offer_code, code, title, client_code, constructor_code, other_documents, observations, notes)
-	    VALUES (offer_code, code, title, client_code, constructor_code, other_documents, observations, notes);
+		INSERT INTO work_t (offer_code, code, title, client_code, constructor_code, other_documents, observations, notes)
+		VALUES (offer_code, code, title, client_code, constructor_code, other_documents, observations, notes);
 
-	    INSERT INTO action_t (action, username, offer_code, work_code, title, client_code, constructor_code, other_documents, observations, notes)
-	    VALUES ('create_work',  username, offer_code, code, title, client_code, constructor_code, other_documents, observations, notes);
+		INSERT INTO action_t(
+								action,
+								username,
+								offer_code,
+								work_code,
+								title,
+								client_code,
+								constructor_code,
+								other_documents,
+								observations,
+								notes
+							)
+		VALUES(
+					'create_work',
+					username,
+					offer_code,
+					code,
+					title,
+					client_code,
+					constructor_code,
+					other_documents,
+					observations,
+					notes
+				);
 
-	    RETURN TRUE;
+		RETURN TRUE;
 	END;
 $$
 LANGUAGE plpgsql SECURITY definer;
@@ -417,19 +443,19 @@ CREATE OR REPLACE FUNCTION delete_work(
 RETURNS BOOLEAN AS
 $$
 	BEGIN
-	    PERFORM validate_user(username, user_password);
-	    PERFORM check_if_admin(username);
+		PERFORM validate_user(username, user_password);
+		PERFORM check_if_admin(username);
 
 		DELETE FROM work_t WHERE code = targets_code;
-	    IF NOT FOUND
+		IF NOT FOUND
 		THEN
-	        RAISE EXCEPTION 'No work exists whit that code';
-	    END IF;
+			RAISE EXCEPTION 'No work exists whit that code';
+		END IF;
 
-	    INSERT INTO action_t (action, username, work_code)
-	    VALUES ('delete_work', username, targets_code);
+		INSERT INTO action_t (action, username, work_code)
+		VALUES ('delete_work', username, targets_code);
 
-	    RETURN TRUE;
+		RETURN TRUE;
 	END;
 $$
 LANGUAGE plpgsql SECURITY definer;
@@ -500,13 +526,13 @@ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION create_sent_documentation_offer(
 																username VARCHAR(10),
 																user_password BYTEA,
-															    associated_offer_code CHAR(6),
-															    num INT,
-															    recipient TEXT,
-															    object_name TEXT,
-															    observations TEXT,
-															    method_of_delivery e_method_of_delivery,
-															    date_of_dispatch DATE
+																associated_offer_code CHAR(6),
+																num INT,
+																recipient TEXT,
+																object_name TEXT,
+																observations TEXT,
+																method_of_delivery e_method_of_delivery,
+																date_of_dispatch DATE
 															)
 RETURN BOOLEAN AS
 $$
@@ -518,8 +544,23 @@ $$
 			RAISE EXCEPTION 'Offer is archived.';
 		END IF;
 
-		INSERT INTO action_t (action, username, work_code, num, recipient_or_sender, object_name, method_of_delivery, date_of_dispatch)
-		VALUES ('create_sent_documentation_offer', username, associated_offer_code, num, recipient, object_name, method_of_delivery, date_of_dispatch);
+		INSERT INTO sent_documentation_offer_t
+			(associated_offer_code, num, recipient, object_name, method_of_delivery, date_of_dispatch)
+		VALUES (associated_offer_code, num, recipient, object_name, method_of_delivery date_of_dispatch);
+
+		INSERT INTO action_t
+			(action, username, offer_code, num, recipient_or_sender, object_name, method_of_delivery, date_of_dispatch)
+		VALUES
+			(
+				'create_sent_documentation_offer',
+				username,
+				associated_offer_code,
+				num,
+				recipient,
+				object_name,
+				method_of_delivery,
+				date_of_dispatch
+			);
 
 		RETURN TRUE;
 	END
@@ -529,13 +570,13 @@ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION create_received_documentation_offer(
 																username VARCHAR(10),
 																user_password BYTEA,
-															    associated_offer_code CHAR(6),
-															    num INT,
-															    sender TEXT,
-															    object_name TEXT,
-															    observations TEXT,
-															    method_of_delivery e_method_of_delivery,
-															    date_of_dispatch DATE
+																associated_offer_code CHAR(6),
+																num INT,
+																sender TEXT,
+																object_name TEXT,
+																observations TEXT,
+																method_of_delivery e_method_of_delivery,
+																date_of_dispatch DATE
 																)
 RETURN BOOLEAN AS
 $$
@@ -547,8 +588,23 @@ $$
 			RAISE EXCEPTION 'Offer is archived.';
 		END IF;
 
-		INSERT INTO action_t (action, username, work_code, num, recipient_or_sender, object_name, method_of_delivery, date_of_dispatch)
-		VALUES ('create_received_documentation_offer', username, associated_offer_code, num, sender, object_name, method_of_delivery, date_of_dispatch);
+		INSERT INTO received_documentation_offer_t
+			(associated_offer_code, num, sender, object_name, method_of_delivery, date_of_dispatch)
+		VALUES (associated_offer_code, num, sender, object_name, method_of_delivery date_of_dispatch);
+
+		INSERT INTO action_t
+			(action, username, offer_code, num, recipient_or_sender, object_name, method_of_delivery, date_of_dispatch)
+		VALUES
+			(
+				'create_received_documentation_offer',
+				username,
+				associated_offer_code,
+				num,
+				sender,
+				object_name,
+				method_of_delivery,
+				date_of_dispatch
+			);
 
 		RETURN TRUE;
 	END
@@ -558,67 +614,238 @@ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION create_sent_documentation_work(
 																username VARCHAR(10),
 																user_password BYTEA,
-															    associated_work_code CHAR(6),
-															    num INT,
-															    recipient TEXT,
-															    object_name TEXT,
-															    observations TEXT,
-															    method_of_delivery e_method_of_delivery,
-															    date_of_dispatch DATE
+																associated_work_code CHAR(6),
+																num INT,
+																recipient TEXT,
+																object_name TEXT,
+																observations TEXT,
+																method_of_delivery e_method_of_delivery,
+																date_of_dispatch DATE
 															)
 RETURN BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
+
+		IF EXISTS (SELECT TRUE FROM work_t WHERE code = associated_work_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Work is archived.';
+		END IF;
+
+		INSERT INTO sent_documentation_work_t
+			(associated_work_code, num, recipient, object_name, method_of_delivery, date_of_dispatch)
+		VALUES (associated_work_code, num, recipient, object_name, method_of_delivery date_of_dispatch);
+
+		INSERT INTO action_t
+			(action, username, work_code, num, recipient_or_sender, object_name, method_of_delivery, date_of_dispatch)
+		VALUES
+			(
+				'create_sent_documentation_work',
+				username,
+				associated_work_code,
+				num,
+				recipient,
+				object_name,
+				method_of_delivery,
+				date_of_dispatch
+			);
+
+		RETURN TRUE;
 	END
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION create_received_documentation_work()
+CREATE OR REPLACE FUNCTION create_received_documentation_work(
+																	username VARCHAR(10),
+																	user_password BYTEA,
+																	associated_work_code CHAR(6),
+																	num INT,
+																	sender TEXT,
+																	object_name TEXT,
+																	observations TEXT,
+																	method_of_delivery e_method_of_delivery,
+																	date_of_dispatch DATE
+																)
 RETURN BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
+
+		IF EXISTS (SELECT TRUE FROM work_t WHERE code = associated_work_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Work is archived.';
+		END IF;
+
+		INSERT INTO sent_documentation_work_t
+			(associated_work_code, num, sender, object_name, method_of_delivery, date_of_dispatch)
+		VALUES (associated_work_code, num, sender, object_name, method_of_delivery date_of_dispatch);
+
+		INSERT INTO action_t
+			(action, username, work_code, num, recipient_or_sender, object_name, method_of_delivery, date_of_dispatch)
+		VALUES
+			(
+				'create_received_documentation_work',
+				username,
+				associated_work_code,
+				num,
+				sender,
+				object_name,
+				method_of_delivery,
+				date_of_dispatch
+			);
+
+		RETURN TRUE;
 	END
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION delete_sent_documentation_offer()
+CREATE OR REPLACE FUNCTION delete_sent_documentation_offer(
+																username VARCHAR(10),
+																user_password BYTEA,
+																targets_associated_offer_code CHAR(6),
+																targerts_num INT
+															)
 RETURN BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
+
+		IF EXISTS (SELECT TRUE FROM offer_t WHERE code = targers_associated_offer_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Offer is archived.';
+		END IF;
+
+		DELETE FROM sent_documentation_offer_t
+			WHERE associated_offer_code = targets_associated_offer_code AND num = targerts_num;
+		IF NOT FOUND
+		THEN
+			RAISE EXCEPTION 'No sent documentation exists whit that identifier';
+		END IF;
+
+		INSERT INTO action_t
+			(action, username, offer_code, num)
+		VALUES(
+					'delete_sent_documentation_offer',
+					username,
+					targets_associated_offer_code,
+					targerts_num
+				);
+
+		RETURN TRUE;
 	END
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION delete_received_documentation_offer()
+--working here
+CREATE OR REPLACE FUNCTION delete_received_documentation_offer(
+																	username VARCHAR(10),
+																	user_password BYTEA,
+																	targets_associated_offer_code CHAR(6),
+																	targerts_num INT
+																)
 RETURN BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
+		IF EXISTS (SELECT TRUE FROM offer_t WHERE code = targers_associated_offer_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Offer is archived.';
+		END IF;
+
+		DELETE FROM received_documentation_offer_t
+			WHERE associated_offer_code = targets_associated_offer_code AND num = targerts_num;
+		IF NOT FOUND
+		THEN
+			RAISE EXCEPTION 'No sent documentation exists whit that identifier';
+		END IF;
+
+		INSERT INTO action_t
+			(action, username, offer_code, num)
+		VALUES(
+					'delete_received_documentation_offer',
+					username,
+					targets_associated_offer_code,
+					targerts_num
+				);
+
+		RETURN TRUE;
 	END
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION delete_sent_documentation_work()
+CREATE OR REPLACE FUNCTION delete_sent_documentation_work(
+																username VARCHAR(10),
+																user_password BYTEA,
+																targets_associated_work_code CHAR(6),
+																targerts_num INT
+															)
 RETURN BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
+
+		IF EXISTS (SELECT TRUE FROM work_t WHERE code = targers_associated_work_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Work is archived.';
+		END IF;
+
+		DELETE FROM sent_documentation_work_t
+			WHERE associated_work_code = targets_associated_work_code AND num = targerts_num;
+		IF NOT FOUND
+		THEN
+			RAISE EXCEPTION 'No sent documentation exists whit that identifier';
+		END IF;
+
+		INSERT INTO action_t
+			(action, username, work_code, num)
+		VALUES(
+					'delete_sent_documentation_work',
+					username,
+					targets_associated_work_code,
+					targerts_num
+				);
+
+		RETURN TRUE;
 	END
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION delete_received_documentation_work()
+CREATE OR REPLACE FUNCTION delete_received_documentation_work(
+																	username VARCHAR(10),
+																	user_password BYTEA,
+																	targets_associated_work_code CHAR(6),
+																	targerts_num INT
+																)
 RETURN BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
+
+		IF EXISTS (SELECT TRUE FROM work_t WHERE code = targers_associated_work_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Work is archived.';
+		END IF;
+
+		DELETE FROM received_documentation_work_t
+			WHERE associated_work_code = targets_associated_work_code AND num = targerts_num;
+		IF NOT FOUND
+		THEN
+			RAISE EXCEPTION 'No sent documentation exists whit that identifier';
+		END IF;
+
+		INSERT INTO action_t
+			(action, username, work_code, num)
+		VALUES(
+					'delete_received_documentation_work',
+					username,
+					targets_associated_work_code,
+					targerts_num
+				);
+
+		RETURN TRUE;
 	END
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
-
 
 CREATE ROLE gateway_role LOGIN PASSWORD 'exnz2tg54gm7qkkj4e4nj';
 GRANT EXECUTE ON FUNCTION create_offer TO gateway_role;
@@ -631,3 +858,9 @@ GRANT EXECUTE ON FUNCTION archive_work TO gateway_role;
 GRANT EXECUTE ON FUNCTION reopen_work TO gateway_role;
 GRANT EXECUTE ON FUNCTION create_sent_documentation_offer TO gateway_role;
 GRANT EXECUTE ON FUNCTION create_received_documentation_offer TO gateway_role;
+GRANT EXECUTE ON FUNCTION create_sent_documentation_work TO gateway_role;
+GRANT EXECUTE ON FUNCTION create_received_documentation_work TO gateway_role;
+GRANT EXECUTE ON FUNCTION delete_sent_documentation_offer TO gateway_role;
+GRANT EXECUTE ON FUNCTION delete_received_documentation_offer TO gateway_role;
+GRANT EXECUTE ON FUNCTION delete_sent_documentation_work TO gateway_role;
+GRANT EXECUTE ON FUNCTION delete_received_documentation_work TO gateway_role;
