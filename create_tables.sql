@@ -37,8 +37,8 @@ CREATE TABLE work_t
 	other_documents TEXT,
 	observations TEXT,
 	notes TEXT,
-	is_read_only BOOLEAN NOT NULL DEFAULT FALSE
-	CHECK (code ~ '^[1-9][0-9]{5}$')
+	is_read_only BOOLEAN NOT NULL DEFAULT FALSE,
+	CONSTRAINT format CHECK (code ~ '^[1-9][0-9]{5}$')
 );
 
 CREATE TYPE e_method_of_delivery AS ENUM ('email', 'cd', 'messenger', 'onhand', 'fax', 'ftp', 'other');
@@ -310,7 +310,7 @@ $$
 		DELETE FROM offer_t WHERE code = targets_code;
 		IF NOT FOUND
 		THEN
-			RAISE EXCEPTION 'No offer exists whit that code';
+			RAISE EXCEPTION 'No offer exists with that code';
 		END IF;
 
 		INSERT INTO action_t (action, username, offer_code)
@@ -449,7 +449,7 @@ $$
 		DELETE FROM work_t WHERE code = targets_code;
 		IF NOT FOUND
 		THEN
-			RAISE EXCEPTION 'No work exists whit that code';
+			RAISE EXCEPTION 'No work exists with that code';
 		END IF;
 
 		INSERT INTO action_t (action, username, work_code)
@@ -546,7 +546,7 @@ $$
 
 		INSERT INTO sent_documentation_offer_t
 			(associated_offer_code, num, recipient, object_name, method_of_delivery, date_of_dispatch)
-		VALUES (associated_offer_code, num, recipient, object_name, method_of_delivery date_of_dispatch);
+		VALUES (associated_offer_code, num, recipient, object_name, method_of_delivery, date_of_dispatch);
 
 		INSERT INTO action_t
 			(action, username, offer_code, num, recipient_or_sender, object_name, method_of_delivery, date_of_dispatch)
@@ -590,7 +590,7 @@ $$
 
 		INSERT INTO received_documentation_offer_t
 			(associated_offer_code, num, sender, object_name, method_of_delivery, date_of_dispatch)
-		VALUES (associated_offer_code, num, sender, object_name, method_of_delivery date_of_dispatch);
+		VALUES (associated_offer_code, num, sender, object_name, method_of_delivery, date_of_dispatch);
 
 		INSERT INTO action_t
 			(action, username, offer_code, num, recipient_or_sender, object_name, method_of_delivery, date_of_dispatch)
@@ -634,7 +634,7 @@ $$
 
 		INSERT INTO sent_documentation_work_t
 			(associated_work_code, num, recipient, object_name, method_of_delivery, date_of_dispatch)
-		VALUES (associated_work_code, num, recipient, object_name, method_of_delivery date_of_dispatch);
+		VALUES (associated_work_code, num, recipient, object_name, method_of_delivery, date_of_dispatch);
 
 		INSERT INTO action_t
 			(action, username, work_code, num, recipient_or_sender, object_name, method_of_delivery, date_of_dispatch)
@@ -676,9 +676,9 @@ $$
 			RAISE EXCEPTION 'Work is archived.';
 		END IF;
 
-		INSERT INTO sent_documentation_work_t
+		INSERT INTO recieved_documentation_work_t
 			(associated_work_code, num, sender, object_name, method_of_delivery, date_of_dispatch)
-		VALUES (associated_work_code, num, sender, object_name, method_of_delivery date_of_dispatch);
+		VALUES (associated_work_code, num, sender, object_name, method_of_delivery, date_of_dispatch);
 
 		INSERT INTO action_t
 			(action, username, work_code, num, recipient_or_sender, object_name, method_of_delivery, date_of_dispatch)
@@ -703,23 +703,23 @@ CREATE OR REPLACE FUNCTION delete_sent_documentation_offer(
 																username VARCHAR(10),
 																user_password BYTEA,
 																targets_associated_offer_code CHAR(6),
-																targerts_num INT
+																targets_num INT
 															)
 RETURN BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
 
-		IF EXISTS (SELECT TRUE FROM offer_t WHERE code = targers_associated_offer_code AND is_read_only = TRUE)
+		IF EXISTS (SELECT TRUE FROM offer_t WHERE code = targets_associated_offer_code AND is_read_only = TRUE)
 		THEN
 			RAISE EXCEPTION 'Offer is archived.';
 		END IF;
 
 		DELETE FROM sent_documentation_offer_t
-			WHERE associated_offer_code = targets_associated_offer_code AND num = targerts_num;
+			WHERE associated_offer_code = targets_associated_offer_code AND num = targets_num;
 		IF NOT FOUND
 		THEN
-			RAISE EXCEPTION 'No sent documentation exists whit that identifier';
+			RAISE EXCEPTION 'No sent documentation exists with that identifier';
 		END IF;
 
 		INSERT INTO action_t
@@ -728,7 +728,7 @@ $$
 					'delete_sent_documentation_offer',
 					username,
 					targets_associated_offer_code,
-					targerts_num
+					targets_num
 				);
 
 		RETURN TRUE;
@@ -741,22 +741,22 @@ CREATE OR REPLACE FUNCTION delete_received_documentation_offer(
 																	username VARCHAR(10),
 																	user_password BYTEA,
 																	targets_associated_offer_code CHAR(6),
-																	targerts_num INT
+																	targets_num INT
 																)
 RETURN BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
-		IF EXISTS (SELECT TRUE FROM offer_t WHERE code = targers_associated_offer_code AND is_read_only = TRUE)
+		IF EXISTS (SELECT TRUE FROM offer_t WHERE code = targets_associated_offer_code AND is_read_only = TRUE)
 		THEN
 			RAISE EXCEPTION 'Offer is archived.';
 		END IF;
 
 		DELETE FROM received_documentation_offer_t
-			WHERE associated_offer_code = targets_associated_offer_code AND num = targerts_num;
+			WHERE associated_offer_code = targets_associated_offer_code AND num = targets_num;
 		IF NOT FOUND
 		THEN
-			RAISE EXCEPTION 'No sent documentation exists whit that identifier';
+			RAISE EXCEPTION 'No sent documentation exists with that identifier';
 		END IF;
 
 		INSERT INTO action_t
@@ -765,7 +765,7 @@ $$
 					'delete_received_documentation_offer',
 					username,
 					targets_associated_offer_code,
-					targerts_num
+					targets_num
 				);
 
 		RETURN TRUE;
@@ -777,23 +777,23 @@ CREATE OR REPLACE FUNCTION delete_sent_documentation_work(
 																username VARCHAR(10),
 																user_password BYTEA,
 																targets_associated_work_code CHAR(6),
-																targerts_num INT
+																targets_num INT
 															)
 RETURN BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
 
-		IF EXISTS (SELECT TRUE FROM work_t WHERE code = targers_associated_work_code AND is_read_only = TRUE)
+		IF EXISTS (SELECT TRUE FROM work_t WHERE code = targets_associated_work_code AND is_read_only = TRUE)
 		THEN
 			RAISE EXCEPTION 'Work is archived.';
 		END IF;
 
 		DELETE FROM sent_documentation_work_t
-			WHERE associated_work_code = targets_associated_work_code AND num = targerts_num;
+			WHERE associated_work_code = targets_associated_work_code AND num = targets_num;
 		IF NOT FOUND
 		THEN
-			RAISE EXCEPTION 'No sent documentation exists whit that identifier';
+			RAISE EXCEPTION 'No sent documentation exists with that identifier';
 		END IF;
 
 		INSERT INTO action_t
@@ -802,7 +802,7 @@ $$
 					'delete_sent_documentation_work',
 					username,
 					targets_associated_work_code,
-					targerts_num
+					targets_num
 				);
 
 		RETURN TRUE;
@@ -814,23 +814,23 @@ CREATE OR REPLACE FUNCTION delete_received_documentation_work(
 																	username VARCHAR(10),
 																	user_password BYTEA,
 																	targets_associated_work_code CHAR(6),
-																	targerts_num INT
+																	targets_num INT
 																)
 RETURN BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
 
-		IF EXISTS (SELECT TRUE FROM work_t WHERE code = targers_associated_work_code AND is_read_only = TRUE)
+		IF EXISTS (SELECT TRUE FROM work_t WHERE code = targets_associated_work_code AND is_read_only = TRUE)
 		THEN
 			RAISE EXCEPTION 'Work is archived.';
 		END IF;
 
 		DELETE FROM received_documentation_work_t
-			WHERE associated_work_code = targets_associated_work_code AND num = targerts_num;
+			WHERE associated_work_code = targets_associated_work_code AND num = targets_num;
 		IF NOT FOUND
 		THEN
-			RAISE EXCEPTION 'No sent documentation exists whit that identifier';
+			RAISE EXCEPTION 'No sent documentation exists with that identifier';
 		END IF;
 
 		INSERT INTO action_t
@@ -839,7 +839,7 @@ $$
 					'delete_received_documentation_work',
 					username,
 					targets_associated_work_code,
-					targerts_num
+					targets_num
 				);
 
 		RETURN TRUE;
