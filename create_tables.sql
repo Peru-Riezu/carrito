@@ -46,7 +46,7 @@ CREATE TYPE e_method_of_delivery AS ENUM ('email', 'cd', 'messenger', 'onhand', 
 CREATE TABLE sent_documentation_offer_t
 (
 	associated_offer_code CHAR(6) NOT NULL REFERENCES offer_t(code),
-	num INT NOT NULL,
+	num INTEGER NOT NULL,
 	recipient TEXT NOT NULL,
 	object_name TEXT NOT NULL,
 	observations TEXT,
@@ -58,7 +58,7 @@ CREATE TABLE sent_documentation_offer_t
 CREATE TABLE received_documentation_offer_t
 (
 	associated_offer_code CHAR(6) NOT NULL REFERENCES offer_t(code),
-	num INT NOT NULL,
+	num INTEGER NOT NULL,
 	sender TEXT NOT NULL,
 	object_name TEXT NOT NULL,
 	observations TEXT,
@@ -70,7 +70,7 @@ CREATE TABLE received_documentation_offer_t
 CREATE TABLE sent_documentation_work_t
 (
 	associated_work_code CHAR(6) NOT NULL REFERENCES work_t(code),
-	num INT NOT NULL,
+	num INTEGER NOT NULL,
 	recipient TEXT NOT NULL,
 	object_name TEXT NOT NULL,
 	observations TEXT,
@@ -82,7 +82,7 @@ CREATE TABLE sent_documentation_work_t
 CREATE TABLE received_documentation_work_t
 (
 	associated_work_code CHAR(6) NOT NULL REFERENCES work_t(code),
-	num INT NOT NULL,
+	num INTEGER NOT NULL,
 	sender TEXT NOT NULL,
 	object_name TEXT NOT NULL,
 	observations TEXT,
@@ -95,7 +95,7 @@ CREATE TABLE received_work_documentation_file_t
 (
 	associated_work_code CHAR(6) NOT NULL,
 	num INTEGER NOT NULL,
-	file_size INTEGER NOT NULL,
+	file_size BIGINT NOT NULL,
 	file_name TEXT NOT NULL,
 	content BYTEA,
 	PRIMARY KEY (num, associated_work_code, file_name),
@@ -106,7 +106,7 @@ CREATE TABLE sent_work_documentation_file_t
 (
 	associated_work_code CHAR(6) NOT NULL,
 	num INTEGER NOT NULL,
-	file_size INTEGER NOT NULL,
+	file_size BIGINT NOT NULL,
 	file_name TEXT NOT NULL,
 	content BYTEA,
 	PRIMARY KEY (num, associated_work_code, file_name),
@@ -117,7 +117,7 @@ CREATE TABLE received_offer_documentation_file_t
 (
 	associated_offer_code CHAR(6) NOT NULL,
 	num INTEGER NOT NULL,
-	file_size INTEGER NOT NULL,
+	file_size BIGINT NOT NULL,
 	file_name TEXT NOT NULL,
 	content BYTEA,
 	PRIMARY KEY (num, associated_offer_code, file_name),
@@ -128,7 +128,7 @@ CREATE TABLE sent_offer_documentation_file_t
 (
 	associated_offer_code CHAR(6) NOT NULL,
 	num INTEGER NOT NULL,
-	file_size INTEGER NOT NULL,
+	file_size BIGINT NOT NULL,
 	file_name TEXT NOT NULL,
 	content BYTEA,
 	PRIMARY KEY (num, associated_offer_code, file_name),
@@ -139,26 +139,26 @@ CREATE TYPE e_action AS ENUM
 (
 	'create_offer', -- done
 	'create_sent_documentation_offer', -- done
-	'create_sent_offer_documentation_file',
+	'create_sent_offer_documentation_file', -- in progress
 	'create_received_documentation_offer', -- done
-	'create_received_documentation_offer_file',
+	'create_received_documentation_offer_file', -- in progress
 	'delete_offer', --done
 	'delete_sent_documentation_offer', -- done
-	'delete_sent_offer_documentation_file',
+	'delete_sent_offer_documentation_file', -- in progress
 	'delete_received_documentation_offer', -- done
-	'delete_received_documentation_offer_file',
+	'delete_received_documentation_offer_file', -- in progress
 	'archive_offer', --done
 	'reopen_offer', --done
 	'create_work', --done
 	'create_sent_documentation_work', -- done
-	'create_sent_work_documentation_file',
+	'create_sent_work_documentation_file', -- in progress
 	'create_received_documentation_work', -- done
-	'create_received_documentation_work_file',
+	'create_received_documentation_work_file', -- in progress
 	'delete_work', --done
 	'delete_sent_documentation_work', -- done
-	'delete_sent_work_documentation_file',
+	'delete_sent_work_documentation_file', -- in progress
 	'delete_received_documentation_work', -- done
-	'delete_received_documentation_work_file',
+	'delete_received_documentation_work_file', -- in progress
 	'archive_work', --done
 	'reopen_work', --done
 	'create_user',
@@ -201,7 +201,7 @@ CREATE TABLE action_t
 	observations TEXT,
 	method_of_delivery e_method_of_delivery,
 	date_of_dispatch DATE,
-	file_size INTEGER,
+	file_size BIGINT,
 	file_name TEXT,
 	content BYTEA,
 	email text,
@@ -219,29 +219,17 @@ CREATE OR REPLACE FUNCTION validate_user(username VARCHAR(10), user_password BYT
 RETURNS BOOLEAN AS
 $$
 	BEGIN
-		IF NOT EXISTS (
-						SELECT TRUE
-						FROM user_t
-						WHERE name = username AND password = user_password
-					)
+		IF NOT EXISTS (SELECT TRUE FROM user_t WHERE name = username AND password = user_password)
 		THEN
 			RAISE EXCEPTION 'Invalid username or password';
 	    END IF;
 
-		IF EXISTS(
-					SELECT TRUE
-					FROM user_t
-					WHERE name = username AND password_expiration_date < CURRENT_DATE
-				)
+		IF EXISTS(SELECT TRUE FROM user_t WHERE name = username AND password_expiration_date < CURRENT_DATE)
 		THEN
 		   RAISE EXCEPTION 'Password expired';
 		END IF;
 
-		IF EXISTS(
-					SELECT TRUE
-					FROM user_t
-					WHERE name = username AND is_blocked = TRUE
-				)
+		IF EXISTS(SELECT TRUE FROM user_t WHERE name = username AND is_blocked = TRUE)
 		THEN
 			RAISE EXCEPTION 'User is blocked';
 		END IF;
@@ -285,22 +273,18 @@ $$
 		PERFORM validate_user(username, user_password);
 		PERFORM check_if_admin(username);
 
-		INSERT INTO offer_t (code, title, client_code, place, observations, notes)
-		VALUES (code, title, client_code, place, observations, notes);
+		INSERT INTO offer_t(code, title, client_code, place, observations, notes)
+		VALUES(code, title, client_code, place, observations, notes);
 
-		INSERT INTO action_t (action, username, offer_code, title, client_code, place, observations, notes)
-		VALUES ('create_offer', username, code, title, client_code, place, observations, notes);
+		INSERT INTO action_t(action, username, offer_code, title, client_code, place, observations, notes)
+		VALUES('create_offer', username, code, title, client_code, place, observations, notes);
 
 		RETURN TRUE;
 	END;
 $$
 LANGUAGE plpgsql SECURITY definer;
 
-CREATE OR REPLACE FUNCTION delete_offer(
-											username VARCHAR(10),
-											user_password BYTEA,
-											targets_code CHAR(6)
-										)
+CREATE OR REPLACE FUNCTION delete_offer(username VARCHAR(10), user_password BYTEA, targets_code CHAR(6))
 RETURNS BOOLEAN AS
 $$
 	BEGIN
@@ -313,19 +297,15 @@ $$
 			RAISE EXCEPTION 'No offer exists with that code';
 		END IF;
 
-		INSERT INTO action_t (action, username, offer_code)
-		VALUES ('delete_offer', username, targets_code);
+		INSERT INTO action_t(action, username, offer_code)
+		VALUES('delete_offer', username, targets_code);
 
 		RETURN TRUE;
 	END;
 $$
 LANGUAGE plpgsql SECURITY definer;
 
-CREATE OR REPLACE FUNCTION archive_offer(
-											username VARCHAR(10),
-											user_password BYTEA,
-											targets_code CHAR(6)
-										)
+CREATE OR REPLACE FUNCTION archive_offer(username VARCHAR(10), user_password BYTEA, targets_code CHAR(6))
 RETURNS BOOLEAN AS
 $$
 	BEGIN
@@ -346,18 +326,14 @@ $$
 		SET is_read_only = TRUE
 		WHERE code = targets_code;
 
-		INSERT INTO action_t (action, username, offer_code)
-		VALUES ('archive_offer', username, targets_code);
+		INSERT INTO action_t(action, username, offer_code)
+		VALUES('archive_offer', username, targets_code);
 
 		RETURN TRUE;
 	END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION reopen_offer(
-											username VARCHAR(10),
-											user_password BYTEA,
-											targets_code CHAR(6)
-										)
+CREATE OR REPLACE FUNCTION reopen_offer(username VARCHAR(10), user_password BYTEA, targets_code CHAR(6))
 RETURNS BOOLEAN AS
 $$
 	BEGIN
@@ -376,8 +352,8 @@ $$
 		SET is_read_only = FALSE
 		WHERE code = targets_code;
 
-		INSERT INTO action_t (action, username, offer_code)
-		VALUES ('reopen_offer', username, targets_code);
+		INSERT INTO action_t(action, username, offer_code)
+		VALUES('reopen_offer', username, targets_code);
 
 		RETURN TRUE;
 	END;
@@ -385,16 +361,16 @@ $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION create_work(
-										username VARCHAR(10),
-										user_password BYTEA,
-										offer_code CHAR(6),
-										code CHAR(6),
-										title TEXT,
-										client_code INTEGER, 
-										constructor_code INTEGER,
-										other_documents TEXT,
-										observations TEXT,
-										notes TEXT
+											username VARCHAR(10),
+											user_password BYTEA,
+											offer_code CHAR(6),
+											code CHAR(6),
+											title TEXT,
+											client_code INTEGER, 
+											constructor_code INTEGER,
+											other_documents TEXT,
+											observations TEXT,
+											notes TEXT
 										)
 RETURNS BOOLEAN AS
 $$
@@ -435,11 +411,7 @@ $$
 $$
 LANGUAGE plpgsql SECURITY definer;
 
-CREATE OR REPLACE FUNCTION delete_work(
-											username VARCHAR(10),
-											user_password BYTEA,
-											targets_code CHAR(6)
-										)
+CREATE OR REPLACE FUNCTION delete_work(username VARCHAR(10), user_password BYTEA, targets_code CHAR(6))
 RETURNS BOOLEAN AS
 $$
 	BEGIN
@@ -452,19 +424,15 @@ $$
 			RAISE EXCEPTION 'No work exists with that code';
 		END IF;
 
-		INSERT INTO action_t (action, username, work_code)
-		VALUES ('delete_work', username, targets_code);
+		INSERT INTO action_t(action, username, work_code)
+		VALUES('delete_work', username, targets_code);
 
 		RETURN TRUE;
 	END;
 $$
 LANGUAGE plpgsql SECURITY definer;
 
-CREATE OR REPLACE FUNCTION archive_work(
-											username VARCHAR(10),
-											user_password BYTEA,
-											targets_code CHAR(6)
-										)
+CREATE OR REPLACE FUNCTION archive_work(username VARCHAR(10), user_password BYTEA, targets_code CHAR(6))
 RETURNS BOOLEAN AS
 $$
 	BEGIN
@@ -485,18 +453,14 @@ $$
 		SET is_read_only = TRUE
 		WHERE code = targets_code;
 
-		INSERT INTO action_t (action, username, work_code)
-		VALUES ('archive_work', username, targets_code);
+		INSERT INTO action_t(action, username, work_code)
+		VALUES('archive_work', username, targets_code);
 
 		RETURN TRUE;
 	END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION reopen_work(
-											username VARCHAR(10),
-											user_password BYTEA,
-											targets_code CHAR(6)
-										)
+CREATE OR REPLACE FUNCTION reopen_work(username VARCHAR(10), user_password BYTEA, targets_code CHAR(6))
 RETURNS BOOLEAN AS
 $$
 	BEGIN
@@ -515,8 +479,8 @@ $$
 		SET is_read_only = FALSE
 		WHERE code = targets_code;
 
-		INSERT INTO action_t (action, username, work_code)
-		VALUES ('reopen_work', username, targets_code);
+		INSERT INTO action_t(action, username, work_code)
+		VALUES('reopen_work', username, targets_code);
 
 		RETURN TRUE;
 	END;
@@ -527,7 +491,7 @@ CREATE OR REPLACE FUNCTION create_sent_documentation_offer(
 																username VARCHAR(10),
 																user_password BYTEA,
 																associated_offer_code CHAR(6),
-																num INT,
+																num INTEGER,
 																recipient TEXT,
 																object_name TEXT,
 																observations TEXT,
@@ -548,20 +512,28 @@ $$
 			(associated_offer_code, num, recipient, object_name, observations, method_of_delivery, date_of_dispatch)
 		VALUES (associated_offer_code, num, recipient, object_name, observations, method_of_delivery, date_of_dispatch);
 
-		INSERT INTO action_t
-			(action, username, offer_code, num, recipient_or_sender, object_name, observations, method_of_delivery, date_of_dispatch)
-		VALUES
-			(
-				'create_sent_documentation_offer',
-				username,
-				associated_offer_code,
-				num,
-				recipient,
-				object_name,
-				observations,
-				method_of_delivery,
-				date_of_dispatch
-			);
+		INSERT INTO action_t(
+								action,
+								username,
+								offer_code,
+								num,
+								recipient_or_sender,
+								object_name,
+								observations,
+								method_of_delivery,
+								date_of_dispatch
+							)
+		VALUES(
+					'create_sent_documentation_offer',
+					username,
+					associated_offer_code,
+					num,
+					recipient,
+					object_name,
+					observations,
+					method_of_delivery,
+					date_of_dispatch
+				);
 
 		RETURN TRUE;
 	END
@@ -569,15 +541,15 @@ $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION create_received_documentation_offer(
-																username VARCHAR(10),
-																user_password BYTEA,
-																associated_offer_code CHAR(6),
-																num INT,
-																sender TEXT,
-																object_name TEXT,
-																observations TEXT,
-																method_of_delivery e_method_of_delivery,
-																date_of_dispatch DATE
+																	username VARCHAR(10),
+																	user_password BYTEA,
+																	associated_offer_code CHAR(6),
+																	num INTEGER,
+																	sender TEXT,
+																	object_name TEXT,
+																	observations TEXT,
+																	method_of_delivery e_method_of_delivery,
+																	date_of_dispatch DATE
 																)
 RETURN BOOLEAN AS
 $$
@@ -591,22 +563,30 @@ $$
 
 		INSERT INTO received_documentation_offer_t
 			(associated_offer_code, num, sender, object_name, observations, method_of_delivery, date_of_dispatch)
-		VALUES (associated_offer_code, num, sender, object_name, observations, method_of_delivery, date_of_dispatch);
+		VALUES(associated_offer_code, num, sender, object_name, observations, method_of_delivery, date_of_dispatch);
 
-		INSERT INTO action_t
-			(action, username, offer_code, num, recipient_or_sender, object_name, observations, method_of_delivery, date_of_dispatch)
-		VALUES
-			(
-				'create_received_documentation_offer',
-				username,
-				associated_offer_code,
-				num,
-				sender,
-				object_name,
-				observations,
-				method_of_delivery,
-				date_of_dispatch
-			);
+		INSERT INTO action_t(
+								action,
+								username,
+								offer_code,
+								num,
+								recipient_or_sender,
+								object_name,
+								observations,
+								method_of_delivery,
+								date_of_dispatch
+							)
+		VALUES(
+					'create_received_documentation_offer',
+					username,
+					associated_offer_code,
+					num,
+					sender,
+					object_name,
+					observations,
+					method_of_delivery,
+					date_of_dispatch
+				);
 
 		RETURN TRUE;
 	END
@@ -617,7 +597,7 @@ CREATE OR REPLACE FUNCTION create_sent_documentation_work(
 																username VARCHAR(10),
 																user_password BYTEA,
 																associated_work_code CHAR(6),
-																num INT,
+																num INTEGER,
 																recipient TEXT,
 																object_name TEXT,
 																observations TEXT,
@@ -636,22 +616,30 @@ $$
 
 		INSERT INTO sent_documentation_work_t
 			(associated_work_code, num, recipient, object_name, observations, method_of_delivery, date_of_dispatch)
-		VALUES (associated_work_code, num, recipient, object_name, observations, method_of_delivery, date_of_dispatch);
+		VALUES(associated_work_code, num, recipient, object_name, observations, method_of_delivery, date_of_dispatch);
 
-		INSERT INTO action_t
-			(action, username, work_code, num, recipient_or_sender, object_name, observations, method_of_delivery, date_of_dispatch)
-		VALUES
-			(
-				'create_sent_documentation_work',
-				username,
-				associated_work_code,
-				num,
-				recipient,
-				object_name,
-				observations,
-				method_of_delivery,
-				date_of_dispatch
-			);
+		INSERT INTO action_t(
+								action,
+								username,
+								work_code,
+								num,
+								recipient_or_sender,
+								object_name,
+								observations,
+								method_of_delivery,
+								date_of_dispatch
+							)
+		VALUES(
+					'create_sent_documentation_work',
+					username,
+					associated_work_code,
+					num,
+					recipient,
+					object_name,
+					observations,
+					method_of_delivery,
+					date_of_dispatch
+				);
 
 		RETURN TRUE;
 	END
@@ -662,7 +650,7 @@ CREATE OR REPLACE FUNCTION create_received_documentation_work(
 																	username VARCHAR(10),
 																	user_password BYTEA,
 																	associated_work_code CHAR(6),
-																	num INT,
+																	num INTEGER,
 																	sender TEXT,
 																	object_name TEXT,
 																	observations TEXT,
@@ -681,22 +669,30 @@ $$
 
 		INSERT INTO received_documentation_work_t
 			(associated_work_code, num, sender, object_name, observations, method_of_delivery, date_of_dispatch)
-		VALUES (associated_work_code, num, sender, object_name, observations, method_of_delivery, date_of_dispatch);
+		VALUES(associated_work_code, num, sender, object_name, observations, method_of_delivery, date_of_dispatch);
 
-		INSERT INTO action_t
-			(action, username, work_code, num, recipient_or_sender, object_name, observations, method_of_delivery, date_of_dispatch)
-		VALUES
-			(
-				'create_received_documentation_work',
-				username,
-				associated_work_code,
-				num,
-				sender,
-				object_name,
-				observations,
-				method_of_delivery,
-				date_of_dispatch
-			);
+		INSERT INTO action_t(
+								action,
+								username,
+								work_code,
+								num,
+								recipient_or_sender,
+								object_name,
+								observations,
+								method_of_delivery,
+								date_of_dispatch
+							)
+		VALUES(
+					'create_received_documentation_work',
+					username,
+					associated_work_code,
+					num,
+					sender,
+					object_name,
+					observations,
+					method_of_delivery,
+					date_of_dispatch
+				);
 
 		RETURN TRUE;
 	END
@@ -707,7 +703,7 @@ CREATE OR REPLACE FUNCTION delete_sent_documentation_offer(
 																username VARCHAR(10),
 																user_password BYTEA,
 																targets_associated_offer_code CHAR(6),
-																targets_num INT
+																targets_num INTEGER
 															)
 RETURN BOOLEAN AS
 $$
@@ -726,26 +722,19 @@ $$
 			RAISE EXCEPTION 'No sent documentation exists with that identifier';
 		END IF;
 
-		INSERT INTO action_t
-			(action, username, offer_code, num)
-		VALUES(
-					'delete_sent_documentation_offer',
-					username,
-					targets_associated_offer_code,
-					targets_num
-				);
+		INSERT INTO action_t(action, username, offer_code, num)
+		VALUES('delete_sent_documentation_offer', username, targets_associated_offer_code, targets_num);
 
 		RETURN TRUE;
 	END
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
---working here
 CREATE OR REPLACE FUNCTION delete_received_documentation_offer(
 																	username VARCHAR(10),
 																	user_password BYTEA,
 																	targets_associated_offer_code CHAR(6),
-																	targets_num INT
+																	targets_num INTEGER
 																)
 RETURN BOOLEAN AS
 $$
@@ -763,14 +752,8 @@ $$
 			RAISE EXCEPTION 'No received documentation exists with that identifier';
 		END IF;
 
-		INSERT INTO action_t
-			(action, username, offer_code, num)
-		VALUES(
-					'delete_received_documentation_offer',
-					username,
-					targets_associated_offer_code,
-					targets_num
-				);
+		INSERT INTO action_t(action, username, offer_code, num)
+		VALUES('delete_received_documentation_offer', username, targets_associated_offer_code, targets_num);
 
 		RETURN TRUE;
 	END
@@ -781,7 +764,7 @@ CREATE OR REPLACE FUNCTION delete_sent_documentation_work(
 																username VARCHAR(10),
 																user_password BYTEA,
 																targets_associated_work_code CHAR(6),
-																targets_num INT
+																targets_num INTEGER
 															)
 RETURN BOOLEAN AS
 $$
@@ -800,14 +783,8 @@ $$
 			RAISE EXCEPTION 'No sent documentation exists with that identifier';
 		END IF;
 
-		INSERT INTO action_t
-			(action, username, work_code, num)
-		VALUES(
-					'delete_sent_documentation_work',
-					username,
-					targets_associated_work_code,
-					targets_num
-				);
+		INSERT INTO action_t(action, username, work_code, num)
+		VALUES('delete_sent_documentation_work', username, targets_associated_work_code, targets_num);
 
 		RETURN TRUE;
 	END
@@ -818,7 +795,7 @@ CREATE OR REPLACE FUNCTION delete_received_documentation_work(
 																	username VARCHAR(10),
 																	user_password BYTEA,
 																	targets_associated_work_code CHAR(6),
-																	targets_num INT
+																	targets_num INTEGER
 																)
 RETURN BOOLEAN AS
 $$
@@ -837,13 +814,295 @@ $$
 			RAISE EXCEPTION 'No received documentation exists with that identifier';
 		END IF;
 
-		INSERT INTO action_t
-			(action, username, work_code, num)
+		INSERT INTO action_t(action, username, work_code, num)
+		VALUES('delete_received_documentation_work', username, targets_associated_work_code, targets_num);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION create_sent_offer_documentation_file(
+																	username VARCHAR(10),
+																	user_password BYTEA,
+																	associated_offer_code CHAR(6),
+																	num INTEGER,
+																	file_size BIGINT,
+																	file_name TEXT,
+																	content BYTEA
+																)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		IF EXISTS (SELECT TRUE FROM offer_t WHERE code = targets_associated_offer_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Offer is archived.';
+		END IF;
+
+		INSERT INTO sent_offer_documentation_file_t(associated_offer_code, num, file_size, file_name, content)
+		VALUES(associated_offer_code, num, file_size, file_name, content);
+
+		INSERT INTO action_t(action, username, offer_code, num, file_size, file_name, content)
 		VALUES(
-					'delete_received_documentation_work',
+					'create_sent_offer_documentation_file',
 					username,
-					targets_associated_work_code,
-					targets_num
+					associated_offer_code,
+					num,
+					file_size,
+					file_name,
+					content
+				);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+	
+CREATE OR REPLACE FUNCTION create_received_documentation_offer_file(
+																		username VARCHAR(10),
+																		user_password BYTEA,
+																		associated_offer_code CHAR(6),
+																		num INTEGER,
+																		file_size BIGINT,
+																		file_name TEXT,
+																		content BYTEA
+																	)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		IF EXISTS (SELECT 1 FROM offer_t WHERE code = associated_offer_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Offer is archived.';
+		END IF;
+
+		INSERT INTO received_offer_documentation_file_t (associated_offer_code, num, file_size, file_name, content)
+		VALUES (associated_offer_code, num, file_size, file_name, content);
+
+		INSERT INTO action_t(action, username, offer_code, num, file_size, file_name, content)
+		VALUES(
+					'create_received_documentation_offer_file',
+					username,
+					associated_offer_code,
+					num,
+					file_size,
+					file_name,
+					content
+				);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION delete_sent_offer_documentation_file(
+																	username VARCHAR(10),
+																	user_password BYTEA,
+																	associated_offer_code CHAR(6),
+																	num INTEGER,
+																	file_name TEXT
+																)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		IF EXISTS (SELECT 1 FROM offer_t WHERE code = associated_offer_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Offer is archived.';
+		END IF;
+
+		DELETE FROM sent_offer_documentation_file_t
+		WHERE associated_offer_code = associated_offer_code AND num = num AND file_name = file_name;
+		IF NOT FOUND THEN
+			RAISE EXCEPTION 'No file was found with that identifier.';
+		END IF;
+
+		INSERT INTO action_t(action, username, offer_code, num, file_name)
+		VALUES('delete_sent_offer_documentation_file', username, associated_offer_code, num, file_name);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION delete_received_documentation_offer_file(
+																		username VARCHAR(10),
+																		user_password BYTEA,
+																		associated_offer_code CHAR(6),
+																		num INTEGER,
+																		file_name TEXT
+																	)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		IF EXISTS (SELECT 1 FROM offer_t WHERE code = associated_offer_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Offer is archived.';
+		END IF;
+
+		DELETE FROM received_offer_documentation_file_t
+		WHERE associated_offer_code = associated_offer_code AND num = num AND file_name = file_name;
+		IF NOT FOUND THEN
+			RAISE EXCEPTION 'No file found with that identifier.';
+		END IF;
+
+		INSERT INTO action_t(action, username, offer_code, num, file_name)
+		VALUES('delete_received_documentation_offer_file', username, associated_offer_code, num, file_name);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION create_sent_work_documentation_file(
+																	username VARCHAR(10),
+																	user_password BYTEA,
+																	associated_work_code CHAR(6),
+																	num INTEGER,
+																	file_size BIGINT,
+																	file_name TEXT,
+																	content BYTEA
+																)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		IF EXISTS (SELECT 1 FROM work_t WHERE code = associated_work_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Work is archived.';
+		END IF;
+
+		INSERT INTO sent_work_documentation_file_t(associated_work_code, num, file_size, file_name, content)
+		VALUES(associated_work_code, num, file_size, file_name, content);
+
+		INSERT INTO action_t(action, username, work_code, num, file_size, file_name, content)
+		VALUES(
+					'create_sent_work_documentation_file',
+					username,
+					associated_work_code,
+					num,
+					file_size,
+					file_name,
+					content
+				);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION create_received_documentation_work_file(
+																		username VARCHAR(10),
+																		user_password BYTEA,
+																		associated_work_code CHAR(6),
+																		num INTEGER,
+																		file_size BIGINT,
+																		file_name TEXT,
+																		content BYTEA
+																	)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		IF EXISTS (SELECT 1 FROM work_t WHERE code = associated_work_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Work is archived.';
+		END IF;
+
+		INSERT INTO received_work_documentation_file_t(associated_work_code, num, file_size, file_name, content)
+		VALUES(associated_work_code, num, file_size, file_name, content);
+
+		INSERT INTO action_t(action, username, work_code, num, file_size, file_name, content)
+		VALUES(
+					'create_received_documentation_work_file',
+					username,
+					associated_work_code,
+					num,
+					file_size,
+					file_name,
+					content
+				);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION delete_sent_work_documentation_file(
+																	username VARCHAR(10),
+																	user_password BYTEA,
+																	associated_work_code CHAR(6),
+																	num INTEGER,
+																	file_name TEXT
+																)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		IF EXISTS (SELECT 1 FROM work_t WHERE code = associated_work_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Work is archived.';
+		END IF;
+
+		DELETE FROM sent_work_documentation_file_t
+		WHERE associated_work_code = associated_work_code AND num = num AND file_name = file_name;
+		IF NOT FOUND THEN
+			RAISE EXCEPTION 'No file found with the specified identifier.';
+		END IF;
+
+		INSERT INTO action_t(action, username, work_code, num, file_name)
+		VALUES(
+					'delete_sent_work_documentation_file',
+					username,
+					associated_work_code,
+					num,
+					file_name
+				);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION delete_received_documentation_work_file(
+																		username VARCHAR(10),
+																		user_password BYTEA,
+																		associated_work_code CHAR(6),
+																		num INTEGER,
+																		file_name TEXT
+																	)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		IF EXISTS (SELECT 1 FROM work_t WHERE code = associated_work_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Work is archived.';
+		END IF;
+
+		DELETE FROM received_work_documentation_file_t
+		WHERE associated_work_code = associated_work_code AND num = num AND file_name = file_name;
+		IF NOT FOUND THEN
+			RAISE EXCEPTION 'No file found with the specified identifier.';
+		END IF;
+
+		INSERT INTO action_t(action, username, work_code, num, file_name)
+		VALUES(
+					'delete_received_documentation_work_file',
+					username,
+					associated_work_code,
+					num,
+					file_name
 				);
 
 		RETURN TRUE;
@@ -868,3 +1127,11 @@ GRANT EXECUTE ON FUNCTION delete_sent_documentation_offer TO gateway_role;
 GRANT EXECUTE ON FUNCTION delete_received_documentation_offer TO gateway_role;
 GRANT EXECUTE ON FUNCTION delete_sent_documentation_work TO gateway_role;
 GRANT EXECUTE ON FUNCTION delete_received_documentation_work TO gateway_role;
+GRANT EXECUTE ON FUNCTION create_sent_offer_documentation_file TO gateway_role;
+GRANT EXECUTE ON FUNCTION create_received_documentation_offer_file TO gateway_role;
+GRANT EXECUTE ON FUNCTION delete_sent_offer_documentation_file TO gateway_role;
+GRANT EXECUTE ON FUNCTION delete_received_documentation_offer_file TO gateway_role;
+GRANT EXECUTE ON FUNCTION create_sent_work_documentation_file TO gateway_role;
+GRANT EXECUTE ON FUNCTION create_received_documentation_work_file TO gateway_role;
+GRANT EXECUTE ON FUNCTION delete_sent_work_documentation_file TO gateway_role;
+GRANT EXECUTE ON FUNCTION delete_received_documentation_work_file TO gateway_role;
