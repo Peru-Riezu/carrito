@@ -1,3 +1,4 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto; -- for hashing user passwords
 ALTER DATABASE carrito SET default_transaction_isolation TO 'serializable'; -- better safe than sorry
 
 CREATE TABLE user_t
@@ -139,40 +140,40 @@ CREATE TYPE e_action AS ENUM
 (
 	'create_offer', -- done
 	'create_sent_documentation_offer', -- done
-	'create_sent_offer_documentation_file', -- in progress
+	'create_sent_offer_documentation_file', -- done
 	'create_received_documentation_offer', -- done
-	'create_received_documentation_offer_file', -- in progress
-	'delete_offer', --done
+	'create_received_documentation_offer_file', -- done
+	'delete_offer', -- done
 	'delete_sent_documentation_offer', -- done
-	'delete_sent_offer_documentation_file', -- in progress
+	'delete_sent_offer_documentation_file', -- done
 	'delete_received_documentation_offer', -- done
-	'delete_received_documentation_offer_file', -- in progress
-	'archive_offer', --done
-	'reopen_offer', --done
-	'create_work', --done
+	'delete_received_documentation_offer_file', -- done
+	'archive_offer', -- done
+	'reopen_offer', -- done
+	'create_work', -- done
 	'create_sent_documentation_work', -- done
-	'create_sent_work_documentation_file', -- in progress
+	'create_sent_work_documentation_file', -- done
 	'create_received_documentation_work', -- done
-	'create_received_documentation_work_file', -- in progress
-	'delete_work', --done
+	'create_received_documentation_work_file', -- done
+	'delete_work', -- done
 	'delete_sent_documentation_work', -- done
-	'delete_sent_work_documentation_file', -- in progress
+	'delete_sent_work_documentation_file', -- done
 	'delete_received_documentation_work', -- done
-	'delete_received_documentation_work_file', -- in progress
-	'archive_work', --done
-	'reopen_work', --done
-	'create_user',
-	'update_user_phone_number',
-	'update_user_email',
-	'delete_user',
-	'block_user',
-	'unblock_user',
-	'set_new_user_password',
-	'set_user_password_to_expired',
-	'update_work_observations',
-	'update_work_notes',
-	'update_offer_observations',
-	'update_offer_notes'
+	'delete_received_documentation_work_file', -- done
+	'archive_work', -- done
+	'reopen_work', -- done
+	'create_user', -- done
+	'update_user_phone_number', -- done
+	'update_user_email', --done
+	'delete_user', --done
+	'block_user', --done
+	'unblock_user', --done
+	'set_new_user_password', --done
+	'set_user_password_to_expired', --done
+	'update_work_observations', --done
+	'update_work_notes', --done
+	'update_offer_observations', --done
+	'update_offer_notes' --done
 );
 
 -- getters that need to be programmed
@@ -191,8 +192,9 @@ CREATE TYPE e_action AS ENUM
 CREATE TABLE action_t
 (
 	action e_action NOT NULL,
-	username CHAR(10) NOT NULL,
+	username VARCHAR(10) NOT NULL,
 	time_of_action TIMESTAMP NOT NULL DEFAULT NOW(),
+	targets_name VARCHAR(10),
 	offer_code CHAR(6),
 	work_code CHAR(6),
 	num INTEGER,
@@ -206,7 +208,6 @@ CREATE TABLE action_t
 	content BYTEA,
 	email text,
 	phone_number text,
-	new_password BYTEA,
 	title TEXT,
 	client_code INTEGER,
 	place TEXT,
@@ -836,7 +837,7 @@ $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
 
-		IF EXISTS (SELECT TRUE FROM offer_t WHERE code = targets_associated_offer_code AND is_read_only = TRUE)
+		IF EXISTS (SELECT TRUE FROM offer_t WHERE code = associated_offer_code AND is_read_only = TRUE)
 		THEN
 			RAISE EXCEPTION 'Offer is archived.';
 		END IF;
@@ -901,28 +902,36 @@ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION delete_sent_offer_documentation_file(
 																	username VARCHAR(10),
 																	user_password BYTEA,
-																	associated_offer_code CHAR(6),
-																	num INTEGER,
-																	file_name TEXT
+																	targets_associated_offer_code CHAR(6),
+																	targets_num INTEGER,
+																	targets_file_name TEXT
 																)
 RETURN BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
 
-		IF EXISTS (SELECT 1 FROM offer_t WHERE code = associated_offer_code AND is_read_only = TRUE)
+		IF EXISTS (SELECT 1 FROM offer_t WHERE code = targets_associated_offer_code AND is_read_only = TRUE)
 		THEN
 			RAISE EXCEPTION 'Offer is archived.';
 		END IF;
 
 		DELETE FROM sent_offer_documentation_file_t
-		WHERE associated_offer_code = associated_offer_code AND num = num AND file_name = file_name;
+		WHERE associated_offer_code = targets_associated_offer_code
+		AND num = targets_num
+		AND file_name = targets_file_name;
 		IF NOT FOUND THEN
 			RAISE EXCEPTION 'No file was found with that identifier.';
 		END IF;
 
 		INSERT INTO action_t(action, username, offer_code, num, file_name)
-		VALUES('delete_sent_offer_documentation_file', username, associated_offer_code, num, file_name);
+		VALUES(
+				'delete_sent_offer_documentation_file',
+					username,
+					targets_associated_offer_code,
+					targets_num,
+					targets_file_name
+				);
 
 		RETURN TRUE;
 	END
@@ -932,28 +941,36 @@ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION delete_received_documentation_offer_file(
 																		username VARCHAR(10),
 																		user_password BYTEA,
-																		associated_offer_code CHAR(6),
-																		num INTEGER,
-																		file_name TEXT
+																		targets_associated_offer_code CHAR(6),
+																		targets_num INTEGER,
+																		targets_file_name TEXT
 																	)
 RETURN BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
 
-		IF EXISTS (SELECT 1 FROM offer_t WHERE code = associated_offer_code AND is_read_only = TRUE)
+		IF EXISTS (SELECT 1 FROM offer_t WHERE code = targets_associated_offer_code AND is_read_only = TRUE)
 		THEN
 			RAISE EXCEPTION 'Offer is archived.';
 		END IF;
 
 		DELETE FROM received_offer_documentation_file_t
-		WHERE associated_offer_code = associated_offer_code AND num = num AND file_name = file_name;
+		WHERE associated_offer_code = targets_associated_offer_code
+		AND num = targets_num
+		AND file_name = targets_file_name;
 		IF NOT FOUND THEN
 			RAISE EXCEPTION 'No file found with that identifier.';
 		END IF;
 
 		INSERT INTO action_t(action, username, offer_code, num, file_name)
-		VALUES('delete_received_documentation_offer_file', username, associated_offer_code, num, file_name);
+		VALUES(
+					'delete_received_documentation_offer_file',
+					username,
+					targets_associated_offer_code,
+					targets_num,
+					targets_file_name
+				);
 
 		RETURN TRUE;
 	END
@@ -1039,22 +1056,24 @@ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION delete_sent_work_documentation_file(
 																	username VARCHAR(10),
 																	user_password BYTEA,
-																	associated_work_code CHAR(6),
-																	num INTEGER,
-																	file_name TEXT
+																	targets_associated_work_code CHAR(6),
+																	targets_num INTEGER,
+																	targets_file_name TEXT
 																)
 RETURN BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
 
-		IF EXISTS (SELECT 1 FROM work_t WHERE code = associated_work_code AND is_read_only = TRUE)
+		IF EXISTS (SELECT 1 FROM work_t WHERE code = targets_associated_work_code AND is_read_only = TRUE)
 		THEN
 			RAISE EXCEPTION 'Work is archived.';
 		END IF;
 
 		DELETE FROM sent_work_documentation_file_t
-		WHERE associated_work_code = associated_work_code AND num = num AND file_name = file_name;
+		WHERE associated_work_code = targets_associated_work_code
+		AND num = targets_num
+		AND file_name = targets_file_name;
 		IF NOT FOUND THEN
 			RAISE EXCEPTION 'No file found with the specified identifier.';
 		END IF;
@@ -1063,9 +1082,9 @@ $$
 		VALUES(
 					'delete_sent_work_documentation_file',
 					username,
-					associated_work_code,
-					num,
-					file_name
+					targets_associated_work_code,
+					targets_num,
+					targets_file_name
 				);
 
 		RETURN TRUE;
@@ -1076,22 +1095,24 @@ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION delete_received_documentation_work_file(
 																		username VARCHAR(10),
 																		user_password BYTEA,
-																		associated_work_code CHAR(6),
-																		num INTEGER,
-																		file_name TEXT
+																		targets_associated_work_code CHAR(6),
+																		targets_num INTEGER,
+																		targets_file_name TEXT
 																	)
 RETURN BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
 
-		IF EXISTS (SELECT 1 FROM work_t WHERE code = associated_work_code AND is_read_only = TRUE)
+		IF EXISTS (SELECT 1 FROM work_t WHERE code = targets_associated_work_code AND is_read_only = TRUE)
 		THEN
 			RAISE EXCEPTION 'Work is archived.';
 		END IF;
 
 		DELETE FROM received_work_documentation_file_t
-		WHERE associated_work_code = associated_work_code AND num = num AND file_name = file_name;
+		WHERE associated_work_code = targets_associated_work_code
+		AND num = targets_num
+		AND file_name = targets_file_name;
 		IF NOT FOUND THEN
 			RAISE EXCEPTION 'No file found with the specified identifier.';
 		END IF;
@@ -1100,10 +1121,354 @@ $$
 		VALUES(
 					'delete_received_documentation_work_file',
 					username,
-					associated_work_code,
-					num,
-					file_name
+					targets_associated_work_code,
+					targets_num,
+					targets_file_name
 				);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION create_user(
+											username VARCHAR(10),
+											user_password BYTEA,
+											targets_name VARCHAR(10),
+											targets_password VARCHAR(256),
+											targets_is_blocked BOOLEAN,
+											targets_email text,
+											targets_phone_number text
+										)
+RETURN BOOLEAN AS
+$$
+	DECLARE
+		hashed_password BYTEA; 
+	BEGIN
+		PERFORM validate_user(username, user_password);
+		PERFORM check_if_admin(username);
+
+		hashed_password := digest(targets_name || targets_password, 'sha256');
+
+		INSERT INTO user_t(name, password, is_blocked, email, phone_number)
+		VALUES(targets_name, hashed_password, targets_is_blocked, targets_email, targets_phone_number);
+
+		INSERT INTO action_t(action, username, targets_name, email, phone_number)
+		VALUES('create_user', username, targets_name, targets_email, targets_phone_number);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION update_user_phone_number(
+														username VARCHAR(10),
+														user_password BYTEA,
+														targets_name VARCHAR(10),
+														new_phone_number TEXT
+													)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+		PERFORM check_if_admin(username);
+
+		UPDATE user_t
+		SET phone_number = new_phone_number
+		WHERE name = targets_name;
+		IF NOT FOUND THEN
+			RAISE EXCEPTION 'No user exists with the specified username.';
+		END IF;
+
+		INSERT INTO action_t(action, username, targets_name, phone_number)
+		VALUES('update_user_phone_number', username, targets_name, new_phone_number);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION update_user_email(
+												username VARCHAR(10),
+												user_password BYTEA,
+												targets_name VARCHAR(10),
+												new_email TEXT
+											)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+		PERFORM check_if_admin(username);
+
+		UPDATE user_t
+		SET email = new_email
+		WHERE name = targets_name;
+		IF NOT FOUND THEN
+			RAISE EXCEPTION 'No user exists with the specified username.';
+		END IF;
+
+		INSERT INTO action_t(action, username, targets_name, email)
+		VALUES('update_user_email', username, targets_name, new_email);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION delete_user(username VARCHAR(10), user_password BYTEA, targets_name VARCHAR(10))
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+		PERFORM check_if_admin(username);
+
+		DELETE FROM user_t
+		WHERE name = targets_name;
+		IF NOT FOUND THEN
+			RAISE EXCEPTION 'No user exists with the specified username.';
+		END IF;
+
+		INSERT INTO action_t(action, username, targets_name)
+		VALUES('delete_user', username, targets_name);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION block_user(username VARCHAR(10), user_password BYTEA, targets_name VARCHAR(10))
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+		PERFORM check_if_admin(username);
+
+		IF EXISTS (SELECT TRUE FROM user_t WHERE name = targets_name AND is_blocked = TRUE)
+		THEN
+			RAISE EXCEPTION 'User % is already blocked.', targets_name;
+		END IF;
+
+		UPDATE user_t
+		SET is_blocked = TRUE
+		WHERE name = targets_name;
+		IF NOT FOUND THEN
+			RAISE EXCEPTION 'No user exists with the specified username.';
+		END IF;
+
+		INSERT INTO action_t(action, username, targets_name)
+		VALUES('block_user', username, targets_name);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION unblock_user(username VARCHAR(10), user_password BYTEA, targets_name VARCHAR(10))
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+		PERFORM check_if_admin(username);
+
+		IF EXISTS (SELECT TRUE FROM user_t WHERE name = targets_name AND is_blocked = FALSE)
+		THEN
+			RAISE EXCEPTION 'User % is not blocked.', targets_name;
+		END IF;
+
+		UPDATE user_t
+		SET is_blocked = FALSE
+		WHERE name = targets_name;
+		IF NOT FOUND THEN
+			RAISE EXCEPTION 'No user exists with the specified username.';
+		END IF;
+
+		INSERT INTO action_t(action, username, targets_name)
+		VALUES('unblock_user', username, targets_name);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION set_new_user_password(
+													username VARCHAR(10),
+													user_password BYTEA,
+													targets_name VARCHAR(10),
+													new_password VARCHAR(256)
+												)
+RETURN BOOLEAN AS
+$$
+	DECLARE
+	    hashed_password BYTEA;
+	BEGIN
+		PERFORM validate_user(username, user_password);
+		PERFORM check_if_admin(username);
+
+		hashed_password := digest(targets_name || new_password, 'sha256');
+
+		UPDATE user_t
+		SET password = hashed_password,
+			password_expiration_date = CURRENT_DATE + INTERVAL '1 year'
+		WHERE name = targets_name;
+		IF NOT FOUND THEN
+			RAISE EXCEPTION 'No user exists with the specified username';
+		END IF;
+
+		INSERT INTO action_t(action, username, targets_name)
+		VALUES('set_new_user_password', username, targets_name);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION set_user_password_to_expired(
+															username VARCHAR(10),
+															user_password BYTEA,
+															targets_name VARCHAR(10)
+														)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+		PERFORM check_if_admin(username);
+
+		UPDATE user_t
+		SET password_expiration_date = '0001-01-01'::DATE
+		WHERE name = targets_name;
+		IF NOT FOUND THEN
+			RAISE EXCEPTION 'No user exists with the specified username';
+		END IF;
+
+		INSERT INTO action_t(action, username, targets_name)
+		VALUES ('set_user_password_to_expired', username, targets_name);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION update_work_observations(
+														username VARCHAR(10),
+														user_password BYTEA,
+														target_work_code CHAR(6),
+														new_observations TEXT
+													)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+		PERFORM check_if_admin(username);
+
+		IF EXISTS (SELECT TRUE FROM work_t WHERE code = target_work_code AND is_read_only = TRUE) THEN
+			RAISE EXCEPTION 'Work is archived and cannot be modified.';
+		END IF;
+
+		UPDATE work_t
+		SET observations = new_observations
+		WHERE code = target_work_code;
+		IF NOT FOUND THEN
+			RAISE EXCEPTION 'No work exists with the specified code.';
+		END IF;
+
+		INSERT INTO action_t(action, username, work_code, observations)
+		VALUES( 'update_work_observations', username, target_work_code, new_observations);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION update_work_notes(
+												username VARCHAR(10),
+												user_password BYTEA,
+												target_work_code CHAR(6),
+												new_notes TEXT
+											)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+		PERFORM check_if_admin(username);
+
+		IF EXISTS (SELECT TRUE FROM work_t WHERE code = target_work_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Work is archived and cannot be modified.';
+		END IF;
+
+		UPDATE work_t
+		SET notes = new_notes
+		WHERE code = target_work_code;
+		IF NOT FOUND THEN
+			RAISE EXCEPTION 'No work exists with the specified code.';
+		END IF;
+
+		INSERT INTO action_t(action, username, work_code, notes)
+		VALUES('update_work_notes', username, target_work_code, new_notes);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION update_offer_observations(
+														username VARCHAR(10),
+														user_password BYTEA,
+														target_offer_code CHAR(6),
+														new_observations TEXT
+													)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+		PERFORM check_if_admin(username);
+
+		IF EXISTS (SELECT TRUE FROM offer_t WHERE code = target_offer_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Offer is archived and cannot be modified.';
+		END IF;
+
+		UPDATE offer_t
+		SET observations = new_observations
+		WHERE code = target_offer_code;
+		IF NOT FOUND THEN
+			RAISE EXCEPTION 'No offer exists with the specified code.';
+		END IF;
+
+		INSERT INTO action_t(action, username, offer_code, observations)
+		VALUES('update_offer_observations', username, target_offer_code, new_observations);
+
+		RETURN TRUE;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION update_offer_notes(
+													username VARCHAR(10),
+													user_password BYTEA,
+													target_offer_code CHAR(6),
+													new_notes TEXT
+												)
+RETURN BOOLEAN AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+		PERFORM check_if_admin(username);
+
+		IF EXISTS (SELECT TRUE FROM offer_t WHERE code = target_offer_code AND is_read_only = TRUE)
+		THEN
+			RAISE EXCEPTION 'Offer is archived and cannot be modified.';
+		END IF;
+
+		UPDATE offer_t
+		SET notes = new_notes
+		WHERE code = target_offer_code;
+		IF NOT FOUND THEN
+			RAISE EXCEPTION 'No offer exists with the specified code.';
+		END IF;
+
+		INSERT INTO action_t(action, username, offer_code, notes)
+		VALUES('update_offer_notes', username, target_offer_code, new_notes);
 
 		RETURN TRUE;
 	END
@@ -1135,3 +1500,15 @@ GRANT EXECUTE ON FUNCTION create_sent_work_documentation_file TO gateway_role;
 GRANT EXECUTE ON FUNCTION create_received_documentation_work_file TO gateway_role;
 GRANT EXECUTE ON FUNCTION delete_sent_work_documentation_file TO gateway_role;
 GRANT EXECUTE ON FUNCTION delete_received_documentation_work_file TO gateway_role;
+GRANT EXECUTE ON FUNCTION create_user TO gateway_role;
+GRANT EXECUTE ON FUNCTION update_user_phone_number TO gateway_role;
+GRANT EXECUTE ON FUNCTION update_user_email TO gateway_role;
+GRANT EXECUTE ON FUNCTION delete_user TO gateway_role;
+GRANT EXECUTE ON FUNCTION block_user TO gateway_role;
+GRANT EXECUTE ON FUNCTION unblock_user TO gateway_role;
+GRANT EXECUTE ON FUNCTION set_new_user_password TO gateway_role;
+GRANT EXECUTE ON FUNCTION set_user_password_to_expired TO gateway_role;
+GRANT EXECUTE ON FUNCTION update_work_observations TO gateway_role;
+GRANT EXECUTE ON FUNCTION update_work_notes TO gateway_role;
+GRANT EXECUTE ON FUNCTION update_offer_observations TO gateway_role;
+GRANT EXECUTE ON FUNCTION update_offer_notes TO gateway_role;
