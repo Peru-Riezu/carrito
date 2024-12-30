@@ -176,18 +176,6 @@ CREATE TYPE e_action AS ENUM
 	'update_offer_notes' --done
 );
 
--- getters that need to be programmed
--- get_offers
--- get_works
--- get_users
--- get_user_data(id)
--- get_sent_documentation_offer(offer_code)
--- get_sent_documentation_files_offer(offer_code, num)
--- get_sent_documentation_file_offer(offer_code, num, filename)
--- get_sent_documentation_work(work_code)
--- get_sent_documentation_files_work(work_code, num)
--- get_sent_documentation_file_work(work_code, num, filename)
-
 --this is to log the actions, all functions will add an entry here before modifyng the other tables
 CREATE TABLE action_t
 (
@@ -918,8 +906,8 @@ $$
 
 		DELETE FROM sent_offer_documentation_file_t
 		WHERE associated_offer_code = targets_associated_offer_code
-		AND num = targets_num
-		AND file_name = targets_file_name;
+			AND num = targets_num
+			AND file_name = targets_file_name;
 		IF NOT FOUND THEN
 			RAISE EXCEPTION 'No file was found with that identifier.';
 		END IF;
@@ -957,8 +945,8 @@ $$
 
 		DELETE FROM received_offer_documentation_file_t
 		WHERE associated_offer_code = targets_associated_offer_code
-		AND num = targets_num
-		AND file_name = targets_file_name;
+			AND num = targets_num
+			AND file_name = targets_file_name;
 		IF NOT FOUND THEN
 			RAISE EXCEPTION 'No file found with that identifier.';
 		END IF;
@@ -1072,8 +1060,8 @@ $$
 
 		DELETE FROM sent_work_documentation_file_t
 		WHERE associated_work_code = targets_associated_work_code
-		AND num = targets_num
-		AND file_name = targets_file_name;
+			AND num = targets_num
+			AND file_name = targets_file_name;
 		IF NOT FOUND THEN
 			RAISE EXCEPTION 'No file found with the specified identifier.';
 		END IF;
@@ -1111,8 +1099,8 @@ $$
 
 		DELETE FROM received_work_documentation_file_t
 		WHERE associated_work_code = targets_associated_work_code
-		AND num = targets_num
-		AND file_name = targets_file_name;
+			AND num = targets_num
+			AND file_name = targets_file_name;
 		IF NOT FOUND THEN
 			RAISE EXCEPTION 'No file found with the specified identifier.';
 		END IF;
@@ -1475,6 +1463,287 @@ $$
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
+CREATE OR REPLACE FUNCTION get_users(username VARCHAR(10), user_password BYTEA)
+RETURNS SETOF user_t AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		RETURN QUERY SELECT * FROM user_t ORDER BY name;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_user_data(username VARCHAR(10), user_password BYTEA, target_name VARCHAR(10))
+RETURNS SETOF user_t AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		RETURN QUERY SELECT * FROM user_t WHERE name = target_name ORDER BY name;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_offers(username VARCHAR(10), user_password BYTEA)
+RETURNS SETOF offer_t AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		RETURN QUERY SELECT * FROM offer_t ORDER BY code;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+
+CREATE OR REPLACE FUNCTION get_works(username VARCHAR(10), user_password BYTEA)
+RETURNS SETOF work_t AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		RETURN QUERY SELECT * FROM work_t ORDER BY code;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_sent_documentation_offer(username VARCHAR(10), user_password BYTEA, offer_code CHAR(6))
+RETURNS SETOF sent_documentation_offer_t AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		RETURN QUERY SELECT * FROM sent_documentation_offer_t WHERE associated_offer_code = offer_code ORDER BY num;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_sent_documentation_work(username VARCHAR(10), user_password BYTEA, work_code CHAR(6))
+RETURNS SETOF sent_documentation_work_t AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		RETURN QUERY SELECT * FROM sent_documentation_work_t WHERE associated_work_code = work_code ORDER BY num;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_sent_documentation_files_offer(
+																	username VARCHAR(10),
+																	user_password BYTEA,
+																	offer_code CHAR(6),
+																	doc_num INTEGER
+																)
+RETURNS TABLE(associated_offer_code CHAR(6), num INTEGER, file_size BIGINT, file_name TEXT) AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		RETURN QUERY
+		SELECT associated_offer_code, num, file_size, file_name
+		FROM sent_offer_documentation_file_t
+		WHERE associated_offer_code = offer_code
+		  AND num = doc_num
+		ORDER BY file_name;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_sent_documentation_file_offer(
+																username VARCHAR(10),
+																user_password BYTEA,
+																offer_code CHAR(6),
+																doc_num INTEGER,
+																file_name TEXT
+															)
+RETURNS SETOF sent_offer_documentation_file_t AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		RETURN QUERY
+		SELECT *
+		FROM sent_offer_documentation_file_t
+		WHERE associated_offer_code = offer_code
+		  AND num = doc_num
+		  AND file_name = file_name
+		ORDER BY file_name;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_sent_documentation_files_work(
+																username VARCHAR(10),
+																user_password BYTEA,
+																work_code CHAR(6),
+																doc_num INTEGER
+															)
+RETURNS TABLE(associated_work_code CHAR(6), num INTEGER, file_size BIGINT, file_name TEXT) AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		RETURN QUERY
+		SELECT associated_work_code, num, file_size, file_name
+		FROM sent_work_documentation_file_t
+		WHERE associated_work_code = work_code
+		  AND num = doc_num
+		ORDER BY file_name;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_sent_documentation_file_work(
+																username VARCHAR(10),
+																user_password BYTEA,
+																work_code CHAR(6),
+																doc_num INTEGER,
+																file_name TEXT
+															)
+RETURNS SETOF sent_work_documentation_file_t AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		RETURN QUERY
+		SELECT *
+		FROM sent_work_documentation_file_t
+		WHERE associated_work_code = work_code
+		  AND num = doc_num
+		  AND file_name = file_name
+		ORDER BY file_name;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_received_documentation_offer(
+																username VARCHAR(10),
+																user_password BYTEA,
+																offer_code CHAR(6)
+															)
+RETURNS SETOF received_documentation_offer_t AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		RETURN QUERY
+		SELECT *
+		FROM received_documentation_offer_t
+		WHERE associated_offer_code = offer_code
+		ORDER BY num;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_received_documentation_files_offer(
+    username      VARCHAR(10),
+    user_password BYTEA,
+    offer_code    CHAR(6),
+    doc_num       INTEGER
+)
+RETURNS TABLE(associated_offer_code CHAR(6), num INTEGER, file_size BIGINT, file_name TEXT) AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		RETURN QUERY
+		SELECT associated_offer_code, num, file_size, file_name
+		FROM received_offer_documentation_file_t
+		WHERE associated_offer_code = offer_code
+		  AND num = doc_num
+		ORDER BY file_name;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_received_documentation_file_offer(
+																	username VARCHAR(10),
+																	user_password BYTEA,
+																	offer_code CHAR(6),
+																	doc_num INTEGER,
+																	file_name TEXT
+																)
+RETURNS SETOF received_offer_documentation_file_t AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		RETURN QUERY
+		SELECT *
+		FROM received_offer_documentation_file_t
+		WHERE associated_offer_code = offer_code
+		  AND num = doc_num
+		  AND file_name = file_name
+		ORDER BY file_name;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_received_documentation_work(
+																username VARCHAR(10),
+																user_password BYTEA,
+																work_code CHAR(6)
+															)
+RETURNS SETOF received_documentation_work_t AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		RETURN QUERY
+		SELECT *
+		FROM received_documentation_work_t
+		WHERE associated_work_code = work_code
+		ORDER BY num;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_received_documentation_files_work(
+																	username VARCHAR(10),
+																	user_password BYTEA,
+																	work_code CHAR(6),
+																	doc_num INTEGER
+																)
+RETURNS TABLE(associated_work_code CHAR(6), num INTEGER, file_size BIGINT, file_name TEXT) AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		RETURN QUERY
+		SELECT associated_work_code, num, file_size, file_name
+		FROM received_work_documentation_file_t
+		WHERE associated_work_code = work_code
+		  AND num = doc_num
+		ORDER BY file_name;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_received_documentation_file_work(
+																	username VARCHAR(10),
+																	user_password BYTEA,
+																	work_code CHAR(6),
+																	doc_num INTEGER,
+																	file_name TEXT
+																)
+RETURNS SETOF received_work_documentation_file_t AS
+$$
+	BEGIN
+		PERFORM validate_user(username, user_password);
+
+		RETURN QUERY
+		SELECT *
+		FROM received_work_documentation_file_t
+		WHERE associated_work_code = work_code
+		  AND num = doc_num
+		  AND file_name = file_name
+		ORDER BY file_name;
+	END
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+
 CREATE ROLE gateway_role LOGIN PASSWORD 'exnz2tg54gm7qkkj4e4nj';
 GRANT EXECUTE ON FUNCTION create_offer TO gateway_role;
 GRANT EXECUTE ON FUNCTION delete_offer TO gateway_role;
@@ -1512,3 +1781,36 @@ GRANT EXECUTE ON FUNCTION update_work_observations TO gateway_role;
 GRANT EXECUTE ON FUNCTION update_work_notes TO gateway_role;
 GRANT EXECUTE ON FUNCTION update_offer_observations TO gateway_role;
 GRANT EXECUTE ON FUNCTION update_offer_notes TO gateway_role;
+
+GRANT EXECUTE ON FUNCTION get_offers(VARCHAR(10), BYTEA)
+TO gateway_role;
+GRANT EXECUTE ON FUNCTION get_works(VARCHAR(10), BYTEA)
+TO gateway_role;
+GRANT EXECUTE ON FUNCTION get_users(VARCHAR(10), BYTEA)
+TO gateway_role;
+GRANT EXECUTE ON FUNCTION get_user_data(VARCHAR(10), BYTEA, VARCHAR(10))
+TO gateway_role;
+GRANT EXECUTE ON FUNCTION get_sent_documentation_offer(VARCHAR(10), BYTEA, CHAR(6))
+TO gateway_role;
+GRANT EXECUTE ON FUNCTION get_sent_documentation_work(VARCHAR(10), BYTEA, CHAR(6))
+TO gateway_role;
+GRANT EXECUTE ON FUNCTION get_sent_documentation_files_offer(VARCHAR(10), BYTEA, CHAR(6), INTEGER)
+TO gateway_role;
+GRANT EXECUTE ON FUNCTION get_sent_documentation_file_offer(VARCHAR(10), BYTEA, CHAR(6), INTEGER, TEXT)
+TO gateway_role;
+GRANT EXECUTE ON FUNCTION get_sent_documentation_files_work(VARCHAR(10), BYTEA, CHAR(6), INTEGER)
+TO gateway_role;
+GRANT EXECUTE ON FUNCTION get_sent_documentation_file_work(VARCHAR(10), BYTEA, CHAR(6), INTEGER, TEXT)
+TO gateway_role;
+GRANT EXECUTE ON FUNCTION get_received_documentation_offer(VARCHAR(10), BYTEA, CHAR(6))
+TO gateway_role;
+GRANT EXECUTE ON FUNCTION get_received_documentation_files_offer(VARCHAR(10), BYTEA, CHAR(6), INTEGER)
+TO gateway_role;
+GRANT EXECUTE ON FUNCTION get_received_documentation_file_offer(VARCHAR(10), BYTEA, CHAR(6), INTEGER, TEXT)
+TO gateway_role;
+GRANT EXECUTE ON FUNCTION get_received_documentation_work(VARCHAR(10), BYTEA, CHAR(6))
+TO gateway_role;
+GRANT EXECUTE ON FUNCTION get_received_documentation_files_work(VARCHAR(10), BYTEA, CHAR(6), INTEGER)
+TO gateway_role;
+GRANT EXECUTE ON FUNCTION get_received_documentation_file_work(VARCHAR(10), BYTEA, CHAR(6), INTEGER, TEXT)
+TO gateway_role;
