@@ -55,58 +55,50 @@ async function migrate_offers(ip, username, password, dbName)
 	}
 }
 
-async function create_database(ip, username, password, dbName)
-{
-	let client_carrito;
+async function create_database(ip, username, password, dbName) {
+    let client_carrito;
 
-    try
-	{
-	    client_carrito = new Client
-		(
-			{
-	 	       host: ip,
-	 	       user: username,
-	 	       password: password,
-	 	       database: 'postgres' // Connect to postgres first to manage databases
-		    }
-		);
+    try {
+        client_carrito = new Client({
+            host: ip,
+            user: username,
+            password: password,
+            database: 'postgres' // Connect to postgres first to manage databases
+        });
 
         await client_carrito.connect();
-        
-        // Read the SQL file that drops and recreates the database
-		await client_carrito.query('DROP DATABASE IF EXISTS carrito');
-		await client_carrito.query('DROP USER IF EXISTS gateway_role');
-        await client_carrito.query('CREATE DATABASE carrito');
 
-        // Disconnect from postgres and connect to the newly created database
+        // Drop and recreate the database
+        await client_carrito.query('DROP DATABASE IF EXISTS carrito');
+        await client_carrito.query('DROP USER IF EXISTS gateway_role');
+        await client_carrito.query('CREATE DATABASE carrito');
         await client_carrito.end();
 
-        client_carrito = new Client
-		(
-			{
-	            host: ip,
-	            user: username,
-	            password: password,
-	            database: dbName // connect to "carrito" now that it exists
-	        }
-		);
+        // Reconnect to the new database
+        client_carrito = new Client({
+            host: ip,
+            user: username,
+            password: password,
+            database: dbName
+        });
 
         await client_carrito.connect();
-        
+
         const createTables = await fs.readFile('create_tables.sql', 'utf8');
 
-        await client_carrito.query(createTables);
-
-        console.log('Database recreated and tables created successfully!');
-    }
-	catch (err)
-	{
+        try {
+            // Directly execute the full SQL string
+            await client_carrito.query(createTables);
+            console.log('Database recreated and tables created successfully!');
+        } catch (err) {
+            console.error('Error executing SQL file:', err.message);
+            throw err;
+        }
+    } catch (err) {
         console.error('Error:', err.message);
-    }
-	finally
-	{
+    } finally {
         await client_carrito.end();
-	}
+    }
 }
 
 async function main()
