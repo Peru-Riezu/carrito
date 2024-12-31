@@ -487,7 +487,7 @@ CREATE OR REPLACE FUNCTION create_sent_documentation_offer(
 																method_of_delivery e_method_of_delivery,
 																date_of_dispatch DATE
 															)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -525,7 +525,7 @@ $$
 				);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -540,7 +540,7 @@ CREATE OR REPLACE FUNCTION create_received_documentation_offer(
 																	method_of_delivery e_method_of_delivery,
 																	date_of_dispatch DATE
 																)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -578,7 +578,7 @@ $$
 				);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -593,7 +593,7 @@ CREATE OR REPLACE FUNCTION create_sent_documentation_work(
 																method_of_delivery e_method_of_delivery,
 																date_of_dispatch DATE
 															)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -631,7 +631,7 @@ $$
 				);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -646,7 +646,7 @@ CREATE OR REPLACE FUNCTION create_received_documentation_work(
 																	method_of_delivery e_method_of_delivery,
 																	date_of_dispatch DATE
 																)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -684,7 +684,7 @@ $$
 				);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -694,7 +694,7 @@ CREATE OR REPLACE FUNCTION delete_sent_documentation_offer(
 																targets_associated_offer_code CHAR(6),
 																targets_num INTEGER
 															)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -715,7 +715,7 @@ $$
 		VALUES('delete_sent_documentation_offer', username, targets_associated_offer_code, targets_num);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -725,7 +725,7 @@ CREATE OR REPLACE FUNCTION delete_received_documentation_offer(
 																	targets_associated_offer_code CHAR(6),
 																	targets_num INTEGER
 																)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -745,7 +745,7 @@ $$
 		VALUES('delete_received_documentation_offer', username, targets_associated_offer_code, targets_num);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -755,7 +755,7 @@ CREATE OR REPLACE FUNCTION delete_sent_documentation_work(
 																targets_associated_work_code CHAR(6),
 																targets_num INTEGER
 															)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -776,7 +776,7 @@ $$
 		VALUES('delete_sent_documentation_work', username, targets_associated_work_code, targets_num);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -786,7 +786,7 @@ CREATE OR REPLACE FUNCTION delete_received_documentation_work(
 																	targets_associated_work_code CHAR(6),
 																	targets_num INTEGER
 																)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -807,7 +807,7 @@ $$
 		VALUES('delete_received_documentation_work', username, targets_associated_work_code, targets_num);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -820,7 +820,7 @@ CREATE OR REPLACE FUNCTION create_sent_offer_documentation_file(
 																	file_name TEXT,
 																	content BYTEA
 																)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -845,7 +845,7 @@ $$
 				);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 	
@@ -858,7 +858,7 @@ CREATE OR REPLACE FUNCTION create_received_documentation_offer_file(
 																		file_name TEXT,
 																		content BYTEA
 																	)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -883,7 +883,7 @@ $$
 				);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -894,7 +894,7 @@ CREATE OR REPLACE FUNCTION delete_sent_offer_documentation_file(
 																	targets_num INTEGER,
 																	targets_file_name TEXT
 																)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -922,7 +922,7 @@ $$
 				);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -933,7 +933,7 @@ CREATE OR REPLACE FUNCTION delete_received_documentation_offer_file(
 																		targets_num INTEGER,
 																		targets_file_name TEXT
 																	)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -961,7 +961,7 @@ $$
 				);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -974,7 +974,7 @@ CREATE OR REPLACE FUNCTION create_sent_work_documentation_file(
 																	file_name TEXT,
 																	content BYTEA
 																)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -999,7 +999,7 @@ $$
 				);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1012,7 +1012,7 @@ CREATE OR REPLACE FUNCTION create_received_documentation_work_file(
 																		file_name TEXT,
 																		content BYTEA
 																	)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -1037,7 +1037,7 @@ $$
 				);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1048,7 +1048,7 @@ CREATE OR REPLACE FUNCTION delete_sent_work_documentation_file(
 																	targets_num INTEGER,
 																	targets_file_name TEXT
 																)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -1076,7 +1076,7 @@ $$
 				);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1087,7 +1087,7 @@ CREATE OR REPLACE FUNCTION delete_received_documentation_work_file(
 																		targets_num INTEGER,
 																		targets_file_name TEXT
 																	)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -1115,7 +1115,7 @@ $$
 				);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1128,7 +1128,7 @@ CREATE OR REPLACE FUNCTION create_user(
 											targets_email text,
 											targets_phone_number text
 										)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	DECLARE
 		hashed_password BYTEA; 
@@ -1155,7 +1155,7 @@ CREATE OR REPLACE FUNCTION update_user_phone_number(
 														targets_name VARCHAR(10),
 														new_phone_number TEXT
 													)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -1172,7 +1172,7 @@ $$
 		VALUES('update_user_phone_number', username, targets_name, new_phone_number);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1182,7 +1182,7 @@ CREATE OR REPLACE FUNCTION update_user_email(
 												targets_name VARCHAR(10),
 												new_email TEXT
 											)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -1199,12 +1199,12 @@ $$
 		VALUES('update_user_email', username, targets_name, new_email);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION delete_user(username VARCHAR(10), user_password BYTEA, targets_name VARCHAR(10))
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -1225,7 +1225,7 @@ $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION block_user(username VARCHAR(10), user_password BYTEA, targets_name VARCHAR(10))
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -1233,7 +1233,7 @@ $$
 
 		IF EXISTS (SELECT TRUE FROM user_t WHERE name = targets_name AND is_blocked = TRUE)
 		THEN
-			RAISE EXCEPTION 'User % is already blocked.', targets_name;
+			RAISE EXCEPTION 'User is already blocked.';
 		END IF;
 
 		UPDATE user_t
@@ -1247,12 +1247,12 @@ $$
 		VALUES('block_user', username, targets_name);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION unblock_user(username VARCHAR(10), user_password BYTEA, targets_name VARCHAR(10))
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -1260,7 +1260,7 @@ $$
 
 		IF EXISTS (SELECT TRUE FROM user_t WHERE name = targets_name AND is_blocked = FALSE)
 		THEN
-			RAISE EXCEPTION 'User % is not blocked.', targets_name;
+			RAISE EXCEPTION 'User is not blocked.';
 		END IF;
 
 		UPDATE user_t
@@ -1274,7 +1274,7 @@ $$
 		VALUES('unblock_user', username, targets_name);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1284,7 +1284,7 @@ CREATE OR REPLACE FUNCTION set_new_user_password(
 													targets_name VARCHAR(10),
 													new_password VARCHAR(256)
 												)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	DECLARE
 	    hashed_password BYTEA;
@@ -1306,7 +1306,7 @@ $$
 		VALUES('set_new_user_password', username, targets_name);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1315,7 +1315,7 @@ CREATE OR REPLACE FUNCTION set_user_password_to_expired(
 															user_password BYTEA,
 															targets_name VARCHAR(10)
 														)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -1332,7 +1332,7 @@ $$
 		VALUES ('set_user_password_to_expired', username, targets_name);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1342,7 +1342,7 @@ CREATE OR REPLACE FUNCTION update_work_observations(
 														target_work_code CHAR(6),
 														new_observations TEXT
 													)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -1363,7 +1363,7 @@ $$
 		VALUES( 'update_work_observations', username, target_work_code, new_observations);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1373,7 +1373,7 @@ CREATE OR REPLACE FUNCTION update_work_notes(
 												target_work_code CHAR(6),
 												new_notes TEXT
 											)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -1395,7 +1395,7 @@ $$
 		VALUES('update_work_notes', username, target_work_code, new_notes);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1405,7 +1405,7 @@ CREATE OR REPLACE FUNCTION update_offer_observations(
 														target_offer_code CHAR(6),
 														new_observations TEXT
 													)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -1427,7 +1427,7 @@ $$
 		VALUES('update_offer_observations', username, target_offer_code, new_observations);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1437,7 +1437,7 @@ CREATE OR REPLACE FUNCTION update_offer_notes(
 													target_offer_code CHAR(6),
 													new_notes TEXT
 												)
-RETURN BOOLEAN AS
+RETURNS BOOLEAN AS
 $$
 	BEGIN
 		PERFORM validate_user(username, user_password);
@@ -1459,7 +1459,7 @@ $$
 		VALUES('update_offer_notes', username, target_offer_code, new_notes);
 
 		RETURN TRUE;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1470,7 +1470,7 @@ $$
 		PERFORM validate_user(username, user_password);
 
 		RETURN QUERY SELECT * FROM user_t ORDER BY name;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1481,7 +1481,7 @@ $$
 		PERFORM validate_user(username, user_password);
 
 		RETURN QUERY SELECT * FROM user_t WHERE name = target_name ORDER BY name;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1492,7 +1492,7 @@ $$
 		PERFORM validate_user(username, user_password);
 
 		RETURN QUERY SELECT * FROM offer_t ORDER BY code;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1504,7 +1504,7 @@ $$
 		PERFORM validate_user(username, user_password);
 
 		RETURN QUERY SELECT * FROM work_t ORDER BY code;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1515,7 +1515,7 @@ $$
 		PERFORM validate_user(username, user_password);
 
 		RETURN QUERY SELECT * FROM sent_documentation_offer_t WHERE associated_offer_code = offer_code ORDER BY num;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1526,7 +1526,7 @@ $$
 		PERFORM validate_user(username, user_password);
 
 		RETURN QUERY SELECT * FROM sent_documentation_work_t WHERE associated_work_code = work_code ORDER BY num;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1547,7 +1547,7 @@ $$
 		WHERE associated_offer_code = offer_code
 		  AND num = doc_num
 		ORDER BY file_name;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1570,7 +1570,7 @@ $$
 		  AND num = doc_num
 		  AND file_name = file_name
 		ORDER BY file_name;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1591,7 +1591,7 @@ $$
 		WHERE associated_work_code = work_code
 		  AND num = doc_num
 		ORDER BY file_name;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1614,7 +1614,7 @@ $$
 		  AND num = doc_num
 		  AND file_name = file_name
 		ORDER BY file_name;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1633,7 +1633,7 @@ $$
 		FROM received_documentation_offer_t
 		WHERE associated_offer_code = offer_code
 		ORDER BY num;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1654,7 +1654,7 @@ $$
 		WHERE associated_offer_code = offer_code
 		  AND num = doc_num
 		ORDER BY file_name;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1677,7 +1677,7 @@ $$
 		  AND num = doc_num
 		  AND file_name = file_name
 		ORDER BY file_name;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1696,7 +1696,7 @@ $$
 		FROM received_documentation_work_t
 		WHERE associated_work_code = work_code
 		ORDER BY num;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1717,7 +1717,7 @@ $$
 		WHERE associated_work_code = work_code
 		  AND num = doc_num
 		ORDER BY file_name;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1740,7 +1740,7 @@ $$
 		  AND num = doc_num
 		  AND file_name = file_name
 		ORDER BY file_name;
-	END
+	END;
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
 
